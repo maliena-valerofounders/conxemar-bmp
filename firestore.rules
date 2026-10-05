@@ -1,0 +1,101 @@
+rules_version = '2';
+
+// Conxemar BMP Group: reglas de seguridad de Firestore.
+// Lo que garantizan, aunque alguien manipule el código de la web:
+//  - solo entran personas cuyo email esté en la colección "allowed"
+//  - "creado por" (campo by) siempre es el usuario que escribe y no se puede cambiar
+//  - solo el autor (o un administrador) borra lo suyo
+//  - "visitado" de cada persona es privado
+//  - solo los administradores cambian el catálogo y la lista de accesos
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+    function isAllowed() {
+      return signedIn() && exists(/databases/$(database)/documents/allowed/$(myEmail()));
+    }
+    function isAdmin() {
+      return isAllowed()
+        && get(/databases/$(database)/documents/allowed/$(myEmail())).data.get('admin', false) == true;
+    }
+    function createdByMe() {
+      return request.resource.data.by == request.auth.uid;
+    }
+    function authorKept() {
+      return request.resource.data.by == resource.data.by;
+    }
+    function isAuthor() {
+      return resource.data.by == request.auth.uid;
+    }
+
+    // Lista de accesos. Cada persona solo puede leer su propia ficha (para saber si entra).
+    match /allowed/{email} {
+      allow get: if signedIn() && myEmail() == email;
+      allow get, list, create, update, delete: if isAdmin();
+    }
+
+    // Ficha pública de cada usuario (para mostrar su nombre en "creado por").
+    match /users/{uid} {
+      allow read: if isAllowed();
+      allow write: if isAllowed() && request.auth.uid == uid;
+
+      // Datos privados de cada persona, como los expositores que ha marcado como visitados.
+      match /private/{doc} {
+        allow read, write: if isAllowed() && request.auth.uid == uid;
+      }
+    }
+
+    // Catálogo de expositores y textos del stand.
+    match /config/{doc} {
+      allow read: if isAllowed();
+      allow write: if isAdmin();
+    }
+
+    match /leads/{id} {
+      allow read: if isAllowed();
+      allow create: if isAllowed() && (createdByMe() || isAdmin());
+      allow update: if isAllowed() && authorKept();
+      allow delete: if isAllowed() && (isAuthor() || isAdmin());
+    }
+
+    match /notes/{id} {
+      allow read: if isAllowed();
+      allow create: if isAllowed() && (createdByMe() || isAdmin());
+      allow update: if isAllowed() && authorKept() && (isAuthor() || isAdmin());
+      allow delete: if isAllowed() && (isAuthor() || isAdmin());
+    }
+
+    match /expositores/{id} {
+      allow read: if isAllowed();
+      allow create: if isAllowed() && (createdByMe() || isAdmin());
+      allow update: if isAllowed() && authorKept();
+      allow delete: if isAllowed() && (isAuthor() || isAdmin());
+    }
+
+    // Fotos: un documento ligero (photoidx) y otro con la imagen (photodata).
+    match /photoidx/{id} {
+      allow read: if isAllowed();
+      allow create: if isAllowed() && (createdByMe() || isAdmin());
+      allow update: if false;
+      allow delete: if isAllowed() && (isAuthor() || isAdmin());
+    }
+    match /photodata/{id} {
+      allow read: if isAllowed();
+      allow create: if isAllowed() && (createdByMe() || isAdmin())
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 400000;
+      allow update: if false;
+      allow delete: if isAllowed() && (isAuthor() || isAdmin());
+    }
+
+    // Todo lo demás, cerrado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

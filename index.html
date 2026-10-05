@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1f14">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Conxemar">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Conxemar BMP Group</title>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<style>
+/* Diseño: app móvil de una pantalla. Cabecera oscura, tres pestañas inferiores, botón flotante de lead, hojas desde abajo. */
+:root{--bg:#f3f5f3;--card:#ffffff;--ink:#13201a;--muted:#5d6b63;--line:#dde3df;--brand:#0a1f14;--brand-ink:#ffffff;--brand-mute:#b9c7bf;--accent:#168a5c;--accent-ink:#ffffff;--warn:#b45309;--warnbg:#fff3de;--A:#b91c1c;--B:#7c3aed;--C:#0369a1;--D:#047857;--danger:#b91c1c;--toast-bg:#13201a;--toast-ink:#f3f5f3;--toast-act:#4ade80}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b120e;--card:#141f19;--ink:#e8efe9;--muted:#9baba1;--line:#26352d;--brand:#06100b;--accent:#4ade80;--accent-ink:#06100b;--warn:#fbbf24;--warnbg:#2a2110;--A:#f87171;--B:#a78bfa;--C:#38bdf8;--D:#34d399;--danger:#f87171;--toast-bg:#e8efe9;--toast-ink:#0b120e;--toast-act:#0f7a4f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b120e;--card:#141f19;--ink:#e8efe9;--muted:#9baba1;--line:#26352d;--brand:#06100b;--accent:#4ade80;--accent-ink:#06100b;--warn:#fbbf24;--warnbg:#2a2110;--A:#f87171;--B:#a78bfa;--C:#38bdf8;--D:#34d399;--danger:#f87171;--toast-bg:#e8efe9;--toast-ink:#0b120e;--toast-act:#0f7a4f;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+#app{display:flex;flex-direction:column;height:100%;max-width:560px;margin:0 auto;background:var(--bg);position:relative}
+header{background:var(--brand);color:var(--brand-ink);padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;flex:none}
+header .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+header h1{font-size:18px;letter-spacing:-.01em;margin:0}
+header small{display:block;font-size:12px;color:var(--brand-mute)}
+.pill{font-size:12px;font-weight:700;background:rgba(255,255,255,.12);border-radius:999px;padding:5px 11px;white-space:nowrap}
+.sync{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--brand-mute)}
+.dot{width:8px;height:8px;border-radius:50%;background:#9baba1;flex:none}
+.dot.ok{background:#4ade80}.dot.pend{background:#fbbf24}.dot.off{background:#f87171}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 96px;min-height:0}
+.view{display:none}.view.on{display:block}
+nav{flex:none;display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom, 0px)}
+nav button{position:relative;background:none;border:0;color:var(--muted);padding:9px 2px 8px;font:inherit;font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:56px;cursor:pointer}
+nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+nav button[aria-selected="true"]{color:var(--accent)}
+nav button .b{position:absolute;top:4px;left:calc(50% + 6px);background:var(--accent);color:var(--accent-ink);border-radius:99px;font-size:10px;min-width:16px;height:16px;line-height:16px;padding:0 4px;font-style:normal}
+h2{font-size:20px;letter-spacing:-.01em;margin:2px 0 4px}
+h3{font-size:15px;margin:0 0 4px}
+.lead{color:var(--muted);font-size:14px;margin:0 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.alert{background:var(--warnbg);border:1px solid var(--warn);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:14px}
+.alert b{color:var(--warn)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none}
+.btn.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.d{color:var(--danger)}
+.btn.s{min-height:44px;padding:0 14px;font-size:14px;border-radius:10px}
+.btn.full{width:100%}
+.btn:active{transform:scale(.98)}
+.btn[disabled]{opacity:.5}
+.btn:focus-visible,.chip:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,nav button:focus-visible,.link:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.link{background:none;border:0;color:var(--accent);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:6px 0;min-height:36px}
+.fab{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom, 0px) + 72px);z-index:10;min-height:52px;padding:0 20px;border-radius:999px;border:0;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:800;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer}
+.fab:active{transform:scale(.97)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 16px 10px;margin:0 -16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;min-height:44px;padding:0 15px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tag{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;color:#fff;vertical-align:middle}
+.tA{background:var(--A)}.tB{background:var(--B)}.tC{background:var(--C)}.tD{background:var(--D)}
+.mut{color:var(--muted);font-size:13px}
+.q{color:var(--warn);font-weight:700}
+input,select,textarea{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit;font-size:16px}
+textarea{min-height:84px;resize:vertical}
+label,.lbl{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:12px 0 5px}
+.err{color:var(--danger);font-size:13px;font-weight:600;margin-top:4px}
+.hint{color:var(--muted);font-size:13px;margin:4px 0 0}
+.search{margin-bottom:10px}
+.count{font-size:13px;color:var(--muted);margin:2px 0 10px}
+.t-row{display:flex;gap:10px;align-items:flex-start}
+.t-row .grow{flex:1;min-width:0}
+.t-row h3{margin:0 0 2px;word-break:break-word}
+.acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.card.done{opacity:.6}
+.owner{font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:1px 7px;color:var(--muted);white-space:nowrap}
+.desc{font-size:14px;margin:8px 0 0}
+.desc.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.chk{list-style:none;margin:0;padding:0}
+.chk li{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.chk li:last-child{border:0}
+.chk input{width:24px;min-height:24px;height:24px;flex:none;accent-color:var(--accent);margin-top:1px}
+.chk li.done span{text-decoration:line-through;color:var(--muted)}
+.sum{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.sum span{font-size:13px;font-weight:700;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+.by{font-size:13px;color:var(--muted);margin:6px 0 0}
+.by b{color:var(--ink)}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20;display:none}
+.sheet-bg.on{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-width:560px;margin:0 auto;background:var(--bg);border-radius:20px 20px 0 0;max-height:92%;overflow-y:auto;padding:16px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);transform:translateY(105%);visibility:hidden;transition:transform .22s,visibility .22s}
+.sheet.on{transform:none;visibility:visible}
+.sheet .grab{width:42px;height:4px;border-radius:9px;background:var(--line);margin:0 auto 12px}
+.opt{display:flex;gap:8px;flex-wrap:wrap}
+.toast{z-index:50;position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom, 0px) + 76px);transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-ink);padding:8px 8px 8px 16px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;display:flex;align-items:center;gap:10px;max-width:92%}
+.toast.on{opacity:1}
+.toast.act{pointer-events:auto}
+.toast button{background:none;border:0;color:var(--toast-act);font:inherit;font-weight:800;padding:8px 12px;min-height:40px;cursor:pointer}
+.hot{border-color:var(--warn)}
+details{margin-bottom:10px}
+details summary{cursor:pointer;font-weight:700;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;list-style:none;min-height:48px}
+details[open] summary{border-radius:14px 14px 0 0}
+details .in{background:var(--card);border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px;padding:12px 14px}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"+";float:right;color:var(--muted)}
+details[open] summary::after{content:"–"}
+.npanel{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.note{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.note p{margin:0;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.thumbs img,.thumbs .ph{width:100%;max-width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:pointer;background:var(--line)}
+.viewer{position:fixed;inset:0;background:#000;z-index:40;display:none;flex-direction:column}
+.viewer.on{display:flex}
+.viewer img{flex:1;min-height:0;object-fit:contain;width:100%}
+.viewer .cap{color:#cfd8d2;font-size:13px;padding:8px 16px;background:#000}
+.viewer .vb{display:flex;gap:8px;padding:12px 16px calc(env(safe-area-inset-bottom, 0px) + 12px);background:#000}
+.viewer .vb .btn{flex:1;background:#1c1c1c;color:#fff;border-color:#333}
+@media (prefers-reduced-motion:reduce){.sheet,.toast{transition:none}}
+
+#gate{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+#gate[hidden]{display:none}
+#gateBody{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:420px;width:100%}
+#gateBody .btn svg{flex:none}
+code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
+.signout{background:none;border:0;color:var(--brand-mute);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:6px 0 6px 10px;min-height:32px;margin-left:auto}
+.sync{width:100%}
+</style>
+</head>
+<body>
+<div id="gate"><div id="gateBody"><p class="lead">Cargando...</p></div></div>
+<div id="app">
+  <header>
+    <div class="row">
+      <div><h1>Conxemar 2026</h1><small>BMP Group · Stand Garmo 2MB15 · IFEVI Vigo</small></div>
+      <span class="pill" id="phase">...</span>
+    </div>
+    <div class="sync"><span class="dot" id="dot"></span><span id="who">Conectando...</span><button class="signout" id="signout" type="button">Salir</button></div>
+  </header>
+
+  <main id="main">
+    <div class="alert" id="noCatalog" hidden role="alert"></div>
+
+    <!-- EXPOSITORES -->
+    <section class="view on" id="v-obj">
+      <h2>Expositores</h2>
+      <p class="lead">Empresas del catálogo con su descripción según su web. "Visitado" es solo tuyo.</p>
+      <button class="btn full" style="margin-bottom:10px" onclick="openPlayer()">+ Añadir expositor a mano</button>
+      <input class="search" id="q" type="search" placeholder="Buscar empresa, stand, localidad o nota" aria-label="Buscar expositores">
+      <div class="chips" id="segChips" role="group" aria-label="Segmento">
+        <button class="chip" data-s="all" aria-pressed="true">Todos</button>
+        <button class="chip" data-s="D" aria-pressed="false">Clientes finales</button>
+        <button class="chip" data-s="B" aria-pressed="false">Prescriptores</button>
+        <button class="chip" data-s="C" aria-pressed="false">Distribuidores</button>
+        <button class="chip" data-s="A" aria-pressed="false">Competencia</button>
+      </div>
+      <div class="chips" id="fltChips" role="group" aria-label="Filtros">
+        <button class="chip" data-f="todo" aria-pressed="false">Sin visitar</button>
+        <button class="chip" data-f="gal" aria-pressed="false">Galicia</button>
+        <button class="chip" data-f="resto" aria-pressed="false">Fuera de Galicia</button>
+      </div>
+      <p class="count" id="count" aria-live="polite"></p>
+      <div id="tList"></div>
+    </section>
+
+    <!-- LEADS -->
+    <section class="view" id="v-leads">
+      <h2>Leads</h2>
+      <p class="lead">Compartidos con todo el equipo. Cada lead sale con producto de interés y fecha de seguimiento.</p>
+      <div class="sum" id="leadSum"></div>
+      <div class="chips" id="lfChips" role="group" aria-label="Filtro de leads">
+        <button class="chip" data-l="all" aria-pressed="true">Todos</button>
+        <button class="chip" data-l="mine" aria-pressed="false">Míos</button>
+        <button class="chip" data-l="obra" aria-pressed="false">Obra en curso</button>
+        <button class="chip" data-l="sinfecha" aria-pressed="false">Sin seguimiento</button>
+      </div>
+      <button class="btn full" style="margin-bottom:12px" onclick="openExport()">Exportar leads y notas</button>
+      <div id="leadList"></div>
+    </section>
+
+    <!-- STAND -->
+    <section class="view" id="v-stand">
+      <h2>El stand</h2>
+      <p class="lead">Stand de Garmo (nuestro distribuidor en Galicia) con producto de las tres empresas de BMP Group.</p>
+
+      <div id="standDyn"></div>
+
+      <details><summary>Cómo usar esta app</summary><div class="in">
+        <ul style="padding-left:18px;margin:0;font-size:14px">
+          <li style="padding:4px 0"><b>Compartido:</b> los leads, las notas, las fotos y los expositores añadidos los ve todo el equipo, con el nombre de quien los creó.</li>
+          <li style="padding:4px 0"><b>Visitado:</b> es personal. Cada persona marca lo suyo y no afecta a los demás.</li>
+          <li style="padding:4px 0"><b>Lead:</b> el botón verde "+ Lead" está siempre abajo a la derecha. Si cierras el formulario a medias, se guarda un borrador en tu móvil.</li>
+          <li style="padding:4px 0"><b>Faltan empresas:</b> en Expositores, "Añadir expositor a mano".</li>
+          <li style="padding:4px 0"><b>Borrar:</b> solo puedes borrar lo que creaste tú, y siempre puedes deshacer durante unos segundos.</li>
+          <li style="padding:4px 0"><b>Exportar:</b> desde Leads, para llevarte una copia en CSV.</li>
+        </ul>
+      </div></details>
+
+      <details open><summary>Producto expuesto y cómo abrir la conversación</summary><div class="in" id="prods"></div></details>
+
+      <details><summary>Qué llevar al stand</summary><div class="in"><ul class="chk" id="llevar"></ul></div></details>
+      <details><summary>Pendiente de verificar</summary><div class="in"><ul class="chk" id="pend"></ul></div></details>
+
+      
+      <details id="adminBox" hidden><summary>Equipo y catálogo (administración)</summary><div class="in">
+        <h3>Personas con acceso</h3>
+        <form id="af" onsubmit="return addAllowed(event)" novalidate>
+          <label for="aEmail" style="margin-top:0">Correo de Google</label><input id="aEmail" type="email" inputmode="email" placeholder="nombre@gmail.com" autocomplete="off">
+          <div class="err" id="eAEmail" role="alert"></div>
+          <label style="display:flex;gap:10px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:var(--ink)"><input type="checkbox" id="aAdmin" style="width:22px;min-height:22px;height:22px;flex:none"> Administrador: puede borrar lo de otros y gestionar accesos</label>
+          <button class="btn p full" type="submit" style="margin-top:10px">Dar acceso</button>
+        </form>
+        <ul class="chk" id="allowedList" style="margin-top:12px"></ul>
+        <h3 style="margin-top:16px">Catálogo</h3>
+        <p class="mut" id="catStatus" style="margin:0">Sin catálogo cargado.</p>
+        <label for="catFile">Cargar catalogo.json</label><input id="catFile" type="file" accept="application/json,.json" onchange="importCatalog(this.files[0])">
+      </div></details>
+    </section>
+  </main>
+
+  <button class="fab" id="fab" onclick="openLead()" aria-label="Nuevo lead">+ Lead</button>
+
+  <nav id="nav" role="tablist" aria-label="Secciones">
+    <button role="tab" data-v="obj" aria-selected="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>Expositores</button>
+    <button role="tab" data-v="leads" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>Leads<i class="b" id="bLeads" style="display:none"></i></button>
+    <button role="tab" data-v="stand" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12v8h14v-8"/></svg>Stand</button>
+  </nav>
+</div>
+
+<div class="sheet-bg" id="bg" onclick="closeSheets()"></div>
+
+<!-- hoja lead -->
+<div class="sheet" id="sheetLead" role="dialog" aria-modal="true" aria-labelledby="lTitle">
+  <div class="grab"></div>
+  <h2 id="lTitle">Nuevo lead</h2>
+  <p class="hint" id="lBy"></p>
+  <p class="hint" id="draftNote" hidden>Borrador recuperado. <button type="button" class="link" onclick="discardDraft()">Empezar de cero</button></p>
+  <form id="lf" autocomplete="off" onsubmit="return saveLead(event)" novalidate>
+    <label for="fEmpresa">Empresa *</label><input id="fEmpresa" aria-describedby="eEmpresa hEmpresa">
+    <div class="err" id="eEmpresa" role="alert"></div><div class="hint" id="hEmpresa"></div>
+    <label for="fNombre">Persona de contacto</label><input id="fNombre">
+    <label for="fCargo">Cargo</label><input id="fCargo">
+    <label for="fTel">Teléfono</label><input id="fTel" type="tel" inputmode="tel">
+    <label for="fMail">Email</label><input id="fMail" type="email" inputmode="email">
+    <div class="lbl">Interés (producto)</div><div class="opt" id="fInt" role="group" aria-label="Interés en producto"></div>
+    <div class="lbl">Interés en (empresa)</div><div class="opt" id="fEmp" role="group" aria-label="Interés en empresa"></div>
+    <div class="lbl">Momento</div><div class="opt" id="fMom" role="group" aria-label="Momento"></div>
+    <div class="lbl">Zona</div><div class="opt" id="fZona" role="group" aria-label="Zona"></div>
+    <div class="lbl">Segmento</div><div class="opt" id="fSeg" role="group" aria-label="Segmento"></div>
+    <div class="lbl">Lo gestiona</div><div class="opt" id="fOwn" role="group" aria-label="Lo gestiona"></div>
+    <label for="fFecha">Seguimiento (fecha)</label><input id="fFecha" type="date">
+    <label for="fNota">Nota</label><textarea id="fNota" placeholder="Qué puertas tiene hoy, cuántas cámaras, qué pidió..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button type="button" class="btn" onclick="closeSheets()">Cancelar</button>
+      <button type="submit" class="btn p" style="flex:1">Guardar lead</button>
+    </div>
+  </form>
+</div>
+
+<!-- hoja expositor manual -->
+<div class="sheet" id="sheetPlayer" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+  <div class="grab"></div>
+  <h2 id="pTitle">Añadir expositor</h2>
+  <p class="lead">Para empresas que no aparecen en la lista. Las verá todo el equipo.</p>
+  <form id="pf" autocomplete="off" onsubmit="return savePlayer(event)" novalidate>
+    <label for="pNombre">Empresa *</label><input id="pNombre" aria-describedby="ePNombre hPNombre">
+    <div class="err" id="ePNombre" role="alert"></div><div class="hint" id="hPNombre"></div>
+    <div class="lbl">Segmento</div><div class="opt" id="pSeg" role="group" aria-label="Segmento"></div>
+    <label for="pStand">Stand</label><input id="pStand" placeholder="Ej. 3B20">
+    <label for="pTown">Localidad</label><input id="pTown">
+    <div class="lbl">Zona</div><div class="opt" id="pZona" role="group" aria-label="Zona"></div>
+    <label for="pDesc">Qué hace</label><textarea id="pDesc" placeholder="Descripción breve"></textarea>
+    <label for="pAcc">Qué hacer con ellos</label><input id="pAcc" placeholder="Ej. Preguntar por cámaras y muelles">
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button type="button" class="btn" onclick="closeSheets()">Cancelar</button>
+      <button type="submit" class="btn p" style="flex:1">Guardar expositor</button>
+    </div>
+  </form>
+</div>
+
+<!-- hoja exportar -->
+<div class="sheet" id="sheetExp" role="dialog" aria-modal="true" aria-labelledby="eTitle">
+  <div class="grab"></div>
+  <h2 id="eTitle">Exportar</h2>
+  <p class="lead">Todos los datos están en la base compartida. Esto es para llevarte una copia.</p>
+  <div style="display:grid;gap:10px">
+    <button class="btn p full" onclick="expShare()">Compartir leads (WhatsApp, correo...)</button>
+    <button class="btn full" onclick="expDownload()">Descargar leads en CSV (Excel)</button>
+    <button class="btn full" onclick="expCopy()">Copiar leads como texto</button>
+    <button class="btn full" onclick="expNotes()">Copiar notas de expositores</button>
+    <button class="btn full" onclick="closeSheets()">Cerrar</button>
+  </div>
+</div>
+
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Foto"><img id="vimg" alt="Foto"><div class="cap" id="vcap"></div><div class="vb"><button class="btn" onclick="closeViewer()">Cerrar</button><button class="btn" onclick="photoSave()">Descargar</button><button class="btn" id="vdel" onclick="photoDelete()" style="color:#f87171">Borrar</button></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- configuración de Firebase (se rellena una vez, ver LEEME.md) ---------- */
+const FIREBASE_CONFIG = {
+  apiKey: "PEGAR_AQUI",
+  authDomain: "PEGAR_AQUI",
+  projectId: "PEGAR_AQUI",
+  appId: "PEGAR_AQUI"
+};
+
+/* ---------- datos fijos ---------- */
+const FAIR=["2026-10-06","2026-10-07","2026-10-08"];
+const MOM=[["obra","Obra en curso"],["proy","Proyecto 6 a 12 meses"],["info","Solo información"]];
+const ZONA=[["gal","Galicia"],["esp","Resto de España"],["pt","Portugal"],["ext","Extranjero"]];
+const OWN=[["garmo","Garmo"],["group","BMP Group"]];
+const EMP=[["bmp","BMP Ibérica"],["repro","Grupo Repro"],["campisa","Campisa Ibérica"]];
+const PROD_EMP={enr:"bmp",cor:"bmp",bat:"repro",ram:"campisa"};
+const SEG={A:"Competencia",B:"Prescriptor",C:"Distribuidor",D:"Cliente final"};
+/* El catálogo (T), los productos, las listas y los textos del stand NO están en este archivo:
+   se cargan desde la base de datos al iniciar sesión (config/catalog). */
+let PRODS=[],T=[],LLEVAR=[],PEND=[],KEYS=[],CATALOG=null;
+
+/* ---------- utilidades ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const slug=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const nowIso=()=>new Date().toISOString();
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const newId=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const pref={get(k,d){try{const v=localStorage.getItem("conx26:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("conx26:"+k,JSON.stringify(v))}catch(e){}}};
+function fmtDate(iso){if(!iso)return"";try{return new Date(iso).toLocaleString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}catch(e){return iso}}
+let toastT;
+function toast(m,undo){const t=$("#toast");t.innerHTML="<span>"+esc(m)+"</span>"+(undo?'<button type="button" id="tundo">Deshacer</button>':"");t.classList.toggle("act",!!undo);t.classList.add("on");if(undo)$("#tundo").onclick=()=>{undo();t.classList.remove("on")};clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),undo?6500:2800)}
+function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function phaseLabel(){const t=todayStr();if(t<FAIR[0])return"Víspera";const i=FAIR.indexOf(t);return i>=0?"Día "+(i+1)+" de 3":"Postferia"}
+function saveFile(name,data,mime){const b=data instanceof Blob?data:new Blob([data],{type:mime});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+
+/* ---------- pantalla de acceso ---------- */
+function gate(html){const g=$("#gate");g.hidden=false;$("#gateBody").innerHTML=html}
+function gateOff(){$("#gate").hidden=true}
+const GOOGLE_SVG='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.5z"/><path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.6l3.8-3z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3A12 12 0 0 0 1.8 7.1l3.8 3C6.5 6.8 9 4.8 12 4.8z"/></svg>';
+function showLogin(msg){
+  gate(`<h2>Conxemar 2026</h2><p class="lead">App del equipo de BMP Group y Garmo. Entra con tu cuenta de Google.</p>${msg?`<p class="err" role="alert">${esc(msg)}</p>`:""}<button class="btn p full" id="btnLogin">${GOOGLE_SVG} Entrar con Google</button><p class="hint" style="margin-top:12px">Solo pueden entrar las personas autorizadas por Miguel.</p>`);
+  $("#btnLogin").onclick=login;
+}
+function showDenied(){
+  gate(`<h2>Todavía no tienes acceso</h2><p class="lead">Has entrado como <b>${esc(me.email)}</b>, pero esta cuenta no está en la lista del equipo.</p><p style="font-size:14px;margin:0 0 12px">Pide a Miguel que añada este correo (en minúsculas) y vuelve a entrar.</p><div class="acts"><button class="btn p" id="btnRetry">Ya me han añadido</button><button class="btn" id="btnOut">Cerrar sesión</button></div>`);
+  $("#btnOut").onclick=()=>auth.signOut();$("#btnRetry").onclick=()=>location.reload();
+}
+function showSetup(){
+  gate(`<h2>Falta configurar Firebase</h2><p class="lead">Este archivo todavía tiene los datos de ejemplo. Sigue el LEEME.md: crea el proyecto, copia su configuración en <code>FIREBASE_CONFIG</code> y vuelve a publicar.</p>`);
+}
+async function login(){
+  const provider=new firebase.auth.GoogleAuthProvider();
+  $("#btnLogin").disabled=true;
+  try{await auth.signInWithPopup(provider)}
+  catch(e){
+    if(e&&(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment")){try{await auth.signInWithRedirect(provider);return}catch(_){}}
+    if(e&&e.code==="auth/popup-closed-by-user"||e&&e.code==="auth/cancelled-popup-request"){showLogin("");return}
+    showLogin("No se pudo iniciar sesión. Comprueba la conexión e inténtalo de nuevo.");
+  }
+}
+
+/* ---------- identidad y permisos ---------- */
+let auth=null,db=null,started=false,adminSubscribed=false;
+let me={id:null,name:"",email:"",canEdit:false};
+let canWrite=null;
+const NAMES={};
+function whoName(uid){
+  if(!uid)return"alguien";
+  if(uid===me.id)return(me.name||"tú")+" (tú)";
+  return NAMES[uid]||"alguien";
+}
+async function needNames(ids){
+  const miss=[...new Set(ids.filter(i=>i&&i!==me.id&&!(i in NAMES)))];
+  if(!miss.length)return;
+  miss.forEach(i=>NAMES[i]="");
+  await Promise.all(miss.map(async i=>{try{const s=await db.doc("users/"+i).get();NAMES[i]=(s.exists&&s.data().name)||"alguien"}catch(e){NAMES[i]="alguien"}}));
+  sched();
+}
+function guardWrite(){
+  if(!db||!me.id){toast("No hay sesión iniciada. Recarga la página y entra de nuevo.");return false}
+  if(canWrite===false){toast("Tu cuenta no tiene permiso para guardar. Pide a Miguel que te autorice.");return false}
+  return true;
+}
+function explain(e){
+  const c=e&&e.code;
+  toast(c==="permission-denied"?"No se pudo guardar: no tienes permiso para esto.":c==="resource-exhausted"?"Se ha superado el límite de la base de datos por hoy. Avisa a Miguel.":"No se pudo guardar. Se reintentará cuando haya conexión.");
+}
+async function w(fn){try{return await fn()}catch(e){if(e&&e.code==="unavailable"){await sleep(500+Math.random()*500);return await fn()}throw e}}
+function run(fn,okMsg){return w(fn).then(()=>{if(okMsg)toast(okMsg);return true}).catch(e=>{explain(e);return false})}
+function canDelete(by){return !by||by===me.id||me.canEdit}
+
+/* ---------- datos compartidos (en memoria, vienen de la base) ---------- */
+let LEADS=[],NOTES=[],EXPO=[],PIDX=[],V={},ALLOWED=[];
+let pendingWrites=false,rt=0;
+const PD={},pdLoading=new Set(),hiddenP=new Set();
+const docs=s=>s.docs.map(d=>Object.assign({id:d.id},d.data()));
+function sched(){if(rt)return;rt=requestAnimationFrame(()=>{rt=0;renderAll()})}
+function setSync(){
+  const dot=$("#dot"),who=$("#who");
+  if(!navigator.onLine){dot.className="dot off";who.textContent="Sin conexión: tus cambios se guardan y se enviarán al volver";return}
+  dot.className="dot "+(pendingWrites?"pend":"ok");
+  who.textContent="Conectado como "+(me.name||"tú")+(pendingWrites?" · guardando...":" · datos compartidos");
+}
+addEventListener("online",setSync);addEventListener("offline",setSync);
+function applyCatalog(d){
+  CATALOG=d;PRODS=d.prods||[];T=d.T||[];LLEVAR=d.llevar||[];PEND=d.pend||[];
+  KEYS=T.map(r=>slug(r[1])+"_"+slug(r[2]));
+  if(new Set(KEYS).size!==KEYS.length)console.warn("Claves de expositor duplicadas");
+  $("#prods").innerHTML=PRODS.map(p=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)"><h3>${esc(p.n)}</h3><div class="mut">${esc(p.e)}</div><p style="font-size:14px;margin:6px 0 0"><b>Para abrir:</b> ${esc(p.q)}</p><p style="font-size:14px;margin:4px 0 0"><b>Argumento:</b> ${esc(p.a)}</p></div>`).join("")+`<p class="mut" style="margin-top:8px">Argumentos orientativos: contrastarlos con la ficha técnica de cada producto antes de prometer cifras.</p>`;
+  $("#llevar").innerHTML=LLEVAR.map((x,i)=>chkItem("lv_"+i,x)).join("");
+  $("#pend").innerHTML=PEND.map((x,i)=>chkItem("pend_"+i,x)).join("");
+  $("#standDyn").innerHTML=d.standHtml||"";
+  $("#noCatalog").hidden=true;
+  $("#catStatus").textContent="Catálogo cargado: "+T.length+" expositores"+(d.generado?" (fecha "+d.generado+")":"")+".";
+  sched();
+}
+function subscribe(){
+  const onErr=e=>{if(e&&e.code==="permission-denied"){toast("Se perdió el permiso de acceso. Recarga la página.")}};
+  const meta=s=>{pendingWrites=!!(s.metadata&&s.metadata.hasPendingWrites);setSync()};
+  db.doc("config/catalog").onSnapshot(s=>{
+    if(s.exists)applyCatalog(s.data());
+    else{CATALOG=null;T=[];KEYS=[];$("#noCatalog").hidden=false;$("#noCatalog").innerHTML=me.canEdit?"<b>Falta cargar el catálogo.</b> Ve a la pestaña Stand, sección «Equipo y catálogo», y elige el archivo catalogo.json.":"<b>El catálogo aún no está cargado.</b> Avisa a Miguel.";sched()}
+  },onErr);
+  db.collection("leads").onSnapshot(s=>{LEADS=docs(s);needNames(LEADS.flatMap(l=>[l.by,l.updBy]));meta(s);sched()},onErr);
+  db.collection("notes").onSnapshot(s=>{NOTES=docs(s);needNames(NOTES.flatMap(n=>[n.by,n.updBy]));meta(s);sched()},onErr);
+  db.collection("expositores").onSnapshot(s=>{EXPO=docs(s);needNames(EXPO.map(x=>x.by));meta(s);sched()},onErr);
+  db.collection("photoidx").onSnapshot(s=>{PIDX=docs(s);needNames(PIDX.map(p=>p.by));meta(s);sched()},onErr);
+  db.doc("users/"+me.id+"/private/visits").onSnapshot(s=>{V=s.exists?((s.data()||{}).keys||{}):{};sched()},onErr);
+  if(me.canEdit){$("#adminBox").hidden=false;db.collection("allowed").onSnapshot(s=>{ALLOWED=docs(s);renderAllowed()},onErr)}
+}
+function startApp(){
+  if(started)return;started=true;
+  gateOff();$("#phase").textContent=phaseLabel();setSync();
+  db.doc("users/"+me.id).set({name:me.name,email:me.email,upd:nowIso()},{merge:true}).catch(()=>{});
+  subscribe();go(pref.get("tab","obj"));
+}
+function boot(){
+  const ok=FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.apiKey.indexOf("PEGAR")!==0;
+  if(!ok){showSetup();return}
+  gate('<p class="lead">Comprobando sesión...</p>');
+  firebase.initializeApp(FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  auth.getRedirectResult().catch(()=>{});
+  auth.onAuthStateChanged(async u=>{
+    if(!u){started=false;showLogin();return}
+    me={id:u.uid,name:u.displayName||u.email||"",email:(u.email||"").toLowerCase(),canEdit:false};
+    try{const a=await db.doc("allowed/"+me.email).get();canWrite=a.exists;me.canEdit=!!(a.exists&&a.data().admin)}catch(e){canWrite=false}
+    if(!canWrite){showDenied();return}
+    startApp();
+  });
+}
+$("#signout").addEventListener("click",()=>{if(auth)auth.signOut().then(()=>location.reload())});
+
+/* ---------- navegación ---------- */
+function go(v){
+  if(!["obj","leads","stand"].includes(v))v="obj";
+  document.querySelectorAll(".view").forEach(e=>e.classList.toggle("on",e.id==="v-"+v));
+  document.querySelectorAll("#nav button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));
+  $("#main").scrollTop=0;pref.set("tab",v);
+}
+$("#nav").addEventListener("click",e=>{const b=e.target.closest("button");if(b)go(b.dataset.v)});
+
+/* ---------- listas locales del tab Stand ---------- */
+let chkS=pref.get("chk",{});
+function chkItem(key,txt){const on=!!chkS[key];return `<li class="${on?"done":""}"><input type="checkbox" id="c_${key}" data-c="${key}" ${on?"checked":""}><label for="c_${key}" style="margin:0;text-transform:none;letter-spacing:0;font-size:15px;font-weight:400;color:inherit;flex:1"><span>${esc(txt)}</span></label></li>`}
+document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.c;if(!k)return;chkS[k]=e.target.checked;e.target.closest("li").classList.toggle("done",e.target.checked);pref.set("chk",chkS)});
+
+/* ---------- expositores ---------- */
+let seg="all",flt=new Set(),expd=new Set(),openN=new Set(),noteDraft={},noteEdit=null;
+function ownerOf(g){return g===true?"Garmo":g===false?"BMP Group":"Decidir"}
+function allPlayers(){return [...T.map((r,i)=>({r,key:KEYS[i]})),...EXPO.map(c=>({r:[c.seg,c.name,c.stand,c.town,c.gal,c.desc,c.acc,0],key:"c_"+c.id,custom:c}))]}
+function notesOf(key){return NOTES.filter(n=>n.key===key).sort((a,b)=>(a.ts||"").localeCompare(b.ts||""))}
+function photosOf(key){return PIDX.filter(p=>p.key===key&&!hiddenP.has(p.id)).sort((a,b)=>(a.ts||"").localeCompare(b.ts||""))}
+function filtersActive(){return seg!=="all"||flt.size>0||$("#q").value.trim()!==""}
+function syncChips(){document.querySelectorAll("#segChips .chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.s===seg));document.querySelectorAll("#fltChips .chip").forEach(c=>c.setAttribute("aria-pressed",flt.has(c.dataset.f)))}
+function clearFilters(){seg="all";flt.clear();$("#q").value="";syncChips();renderT()}
+function notesLabel(key){const n=notesOf(key).length,p=photosOf(key).length;return "Notas y fotos"+(n?" · "+n+(n>1?" notas":" nota"):"")+(p?" · "+p+(p>1?" fotos":" foto"):"")}
+function nameOfKey(key){const p=allPlayers().find(x=>x.key===key);return p?p.r[1]:key}
+function noteHtml(n){
+  const own=n.by===me.id,ed=noteEdit&&noteEdit.id===n.id;
+  return `<div class="note"><p>${esc(n.text)}</p><p class="by">Nota creada por: <b>${esc(whoName(n.by))}</b> · ${esc(fmtDate(n.ts))}${n.updBy&&n.upd&&n.upd!==n.ts?" · editada":""}</p>${(own||canDelete(n.by))&&!ed?`<div class="acts" style="margin-top:6px">${own?`<button class="btn s" onclick="startEditNote('${n.id}')">Editar</button>`:""}<button class="btn s d" onclick="delNote('${n.id}')">Borrar</button></div>`:""}</div>`;
+}
+function notesPanel(key){
+  const ns=notesOf(key),ph=photosOf(key),ed=noteEdit&&noteEdit.key===key;
+  ph.forEach(p=>ensurePhoto(p.id));
+  return `<div class="npanel">${ns.map(noteHtml).join("")}
+  <label style="margin-top:6px" for="nn_${key}">${ed?"Editar nota":"Nueva nota"}</label><textarea id="nn_${key}" placeholder="Qué dijeron, qué puertas tienen, con quién hablaste..." oninput="noteDraft['${key}']=this.value">${esc(noteDraft[key]||"")}</textarea>
+  <div class="acts"><button class="btn s p" onclick="saveNote('${key}')">${ed?"Guardar cambios":"Añadir nota"}</button>${ed?`<button class="btn s" onclick="cancelEditNote()">Cancelar</button>`:""}<button class="btn s" onclick="pickPhoto('${key}')">+ Foto</button></div>
+  ${ph.length?`<div class="thumbs">${ph.map(p=>PD[p.id]?`<img src="${PD[p.id]}" alt="Foto de ${esc(nameOfKey(key))}" onclick="openViewer('${p.id}')">`:`<div class="ph" aria-label="Cargando foto"></div>`).join("")}</div>`:""}</div>`;
+}
+function cardHtml(r,key,custom){
+  const long=(r[5]||"").length>120,open=expd.has(key),vis=!!V[key];
+  return `<div class="card ${vis?"done":""}"><div class="t-row"><div class="grow"><h3>${esc(r[1])}${custom?' <span class="owner">Añadido</span>':""}</h3><div class="mut"><span class="tag t${r[0]||"D"}">${SEG[r[0]]||"Sin segmento"}</span>${r[2]?" &nbsp;Stand <b>"+esc(r[2])+"</b>":""}${r[3]?" · "+esc(r[3]):""}</div></div><span class="owner">${ownerOf(r[4])}</span></div>
+  ${custom?`<p class="by">Añadido por: <b>${esc(whoName(custom.by))}</b></p>`:""}
+  ${r[5]?`<p class="desc ${long&&!open?"clamp":""}">${esc(r[5])}</p>${long?`<button class="link" onclick="toggleDesc('${key}')">${open?"Ver menos":"Ver más"}</button>`:""}`:""}
+  ${r[7]?`<p class="mut" style="margin:4px 0 0"><span class="q">${r[7]===1?"Dato de tercero":"Sin verificar"}</span></p>`:""}
+  ${r[6]?`<p style="font-size:14px;margin:6px 0 0"><b>→</b> ${esc(r[6])}</p>`:""}
+  <div class="acts"><button class="btn s ${vis?"":"p"}" onclick="toggleVis('${key}')" aria-pressed="${vis}">${vis?"Visitado ✓":"Marcar visitado"}</button><button class="btn s" onclick="leadFrom('${key}')">+ Lead</button><button class="btn s" onclick="toggleNotes('${key}')" aria-expanded="${openN.has(key)}">${notesLabel(key)}</button>${custom?`<button class="btn s" onclick="editPlayer('${custom.id}')">Editar</button>${canDelete(custom.by)?`<button class="btn s d" onclick="delPlayer('${custom.id}')">Borrar</button>`:""}`:""}</div>
+  ${openN.has(key)?notesPanel(key):""}</div>`;
+}
+function keepFocus(fn){
+  const a=document.activeElement,id=a&&a.id&&a.id.indexOf("nn_")===0?a.id:null,pos=id?a.selectionStart:0;
+  fn();
+  if(id){const e=document.getElementById(id);if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(_){}}}
+}
+function renderT(){
+  keepFocus(()=>{
+    const q=$("#q").value.toLowerCase().trim(),all=allPlayers();
+    const rows=all.filter(({r,key})=>
+      (seg==="all"||r[0]===seg)&&(!flt.has("todo")||!V[key])&&(!flt.has("gal")||r[4]===true)&&(!flt.has("resto")||r[4]===false)&&
+      (((r[1]||"")+" "+(r[2]||"")+" "+(r[3]||"")+" "+notesOf(key).map(n=>n.text).join(" ")).toLowerCase().includes(q)));
+    const ord={A:0,B:1,C:2,D:3};rows.sort((a,b)=>(ord[a.r[0]]??4)-(ord[b.r[0]]??4));
+    const vis=all.filter(p=>V[p.key]).length;
+    $("#count").innerHTML=`Mostrando <b>${rows.length}</b> de ${all.length} · ${vis} visitados por ti`+(filtersActive()?` <button class="link" onclick="clearFilters()">Limpiar filtros</button>`:"");
+    $("#tList").innerHTML=rows.length?rows.map(({r,key,custom})=>cardHtml(r,key,custom)).join(""):`<div class="card"><p class="mut" style="margin:0">${all.length?"Ningún expositor coincide con los filtros.":"Todavía no hay expositores."}</p><div class="acts">${all.length?`<button class="btn s" onclick="clearFilters()">Limpiar filtros</button>`:""}<button class="btn s" onclick="openPlayer()">+ Añadir expositor</button></div></div>`;
+  });
+}
+function toggleDesc(k){expd.has(k)?expd.delete(k):expd.add(k);renderT()}
+function toggleNotes(k){openN.has(k)?openN.delete(k):openN.add(k);if(noteEdit&&noteEdit.key===k&&!openN.has(k)){noteEdit=null}renderT()}
+$("#segChips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;seg=b.dataset.s;syncChips();renderT()});
+$("#fltChips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;const f=b.dataset.f;
+  if(f==="gal")flt.delete("resto");if(f==="resto")flt.delete("gal");
+  flt.has(f)?flt.delete(f):flt.add(f);syncChips();renderT()});
+$("#q").addEventListener("input",renderT);
+
+/* visitado: personal, en el espacio privado del usuario */
+let vChain=Promise.resolve();
+function toggleVis(key){
+  if(!guardWrite())return;
+  V[key]=!V[key];renderT();
+  const snap=Object.assign({},V),ref=db.doc("users/"+me.id+"/private/visits");
+  vChain=vChain.then(()=>w(()=>ref.set({keys:snap}))).catch(explain);
+}
+
+/* ---------- notas compartidas ---------- */
+function saveNote(key){
+  const text=(noteDraft[key]||"").trim();
+  if(!text){toast("Escribe la nota antes de guardarla.");return}
+  if(!guardWrite())return;
+  if(noteEdit&&noteEdit.key===key){
+    const id=noteEdit.id;noteEdit=null;noteDraft[key]="";
+    run(()=>db.collection("notes").doc(id).update({text,upd:nowIso(),updBy:me.id}),"Nota actualizada");
+  }else{
+    const id=newId("n"),ts=nowIso();noteDraft[key]="";
+    run(()=>db.collection("notes").doc(id).set({key,text,by:me.id,ts,upd:ts}),"Nota guardada");
+  }
+  renderT();
+}
+function startEditNote(id){const n=NOTES.find(x=>x.id===id);if(!n)return;noteEdit={id,key:n.key};noteDraft[n.key]=n.text;renderT();const e=document.getElementById("nn_"+n.key);if(e)e.focus()}
+function cancelEditNote(){if(noteEdit)noteDraft[noteEdit.key]="";noteEdit=null;renderT()}
+function delNote(id){
+  const n=NOTES.find(x=>x.id===id);if(!n||!guardWrite())return;
+  if(!canDelete(n.by)){toast("Solo puede borrar esta nota quien la creó.");return}
+  const data=Object.assign({},n);delete data.id;
+  run(()=>db.collection("notes").doc(id).delete());
+  toast("Nota borrada",()=>{run(()=>db.collection("notes").doc(id).set(data))});
+}
+
+/* ---------- fotos compartidas ---------- */
+function ensurePhoto(id){
+  if(PD[id]||pdLoading.has(id)||!db)return;pdLoading.add(id);
+  db.doc("photodata/"+id).get().then(s=>{if(s.exists)PD[id]=(s.data()||{}).data}).catch(()=>{}).finally(()=>{pdLoading.delete(id);sched()});
+}
+function loadImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{URL.revokeObjectURL(u);res(i)};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("img"))};i.src=u})}
+async function shrink(file){
+  const img=await loadImg(file);let max=1000,q=.62;
+  for(let i=0;i<6;i++){
+    const k=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(img.width*k));c.height=Math.max(1,Math.round(img.height*k));
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    const url=c.toDataURL("image/jpeg",q);if(url.length<300000)return url;
+    max=Math.round(max*.8);q=Math.max(.4,q-.06);
+  }
+  return null;
+}
+function pickPhoto(key){
+  if(!guardWrite())return;
+  const i=document.createElement("input");i.type="file";i.accept="image/*";i.multiple=true;i.onchange=()=>addPhotos(key,[...i.files]);i.click();
+}
+async function addPhotos(key,files){
+  if(!files.length)return;toast(files.length===1?"Guardando foto...":"Guardando "+files.length+" fotos...");let n=0;
+  for(const f of files){
+    try{
+      const url=await shrink(f);if(!url){toast("Una foto es demasiado grande. Prueba con otra.");continue}
+      const id=newId("f"),ts=nowIso();
+      PD[id]=url;
+      Promise.all([db.doc("photodata/"+id).set({data:url,by:me.id}),db.doc("photoidx/"+id).set({key,by:me.id,ts})]).catch(e=>{explain(e);delete PD[id]});
+      n++;
+    }catch(e){toast("No se pudo preparar una foto. Prueba con otra.")}
+  }
+  if(n){openN.add(key);toast(n===1?"Foto guardada":n+" fotos guardadas");sched()}
+}
+let curPhoto=null;
+function openViewer(id){const p=PIDX.find(x=>x.id===id);if(!p||!PD[id])return;curPhoto=id;$("#vimg").src=PD[id];$("#vcap").textContent="Foto de "+nameOfKey(p.key)+" · creada por "+whoName(p.by)+" · "+fmtDate(p.ts);$("#vdel").hidden=!canDelete(p.by);$("#viewer").classList.add("on")}
+function closeViewer(){$("#viewer").classList.remove("on");curPhoto=null}
+function dataToBlob(u){const b=atob(u.split(",")[1]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Blob([a],{type:"image/jpeg"})}
+async function photoSave(){
+  const id=curPhoto,p=PIDX.find(x=>x.id===id);if(!p||!PD[id])return;
+  const blob=dataToBlob(PD[id]),name=slug(nameOfKey(p.key))+"_"+(p.ts||"").slice(0,10)+".jpg";
+  try{const f=new File([blob],name,{type:"image/jpeg"});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:nameOfKey(p.key)});return}}catch(e){if(e&&e.name==="AbortError")return}
+  saveFile(name,blob);toast("Foto descargada");
+}
+function photoDelete(){
+  const id=curPhoto,p=PIDX.find(x=>x.id===id);if(!p||!guardWrite())return;
+  if(!canDelete(p.by)){toast("Solo puede borrar esta foto quien la creó.");return}
+  hiddenP.add(id);closeViewer();renderT();
+  const t=setTimeout(()=>{if(hiddenP.has(id)){run(()=>db.doc("photoidx/"+id).delete()).then(()=>run(()=>db.doc("photodata/"+id).delete())).then(()=>{hiddenP.delete(id)})}},7000);
+  toast("Foto borrada",()=>{clearTimeout(t);hiddenP.delete(id);renderT()});
+}
+
+/* ---------- hojas con foco y botón atrás ---------- */
+let lastFocus=null;
+function showSheet(id,focusSel){
+  const already=document.querySelector(".sheet.on");
+  lastFocus=document.activeElement;
+  $("#bg").classList.add("on");$(id).classList.add("on");
+  if(!already){try{history.pushState({sheet:1},"")}catch(e){}}
+  if(focusSel)setTimeout(()=>{const f=$(focusSel);f&&f.focus()},230);
+}
+function closeSheets(fromPop){
+  $("#bg").classList.remove("on");document.querySelectorAll(".sheet").forEach(s=>s.classList.remove("on"));
+  if(!fromPop){try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
+  if(lastFocus&&lastFocus.focus)try{lastFocus.focus()}catch(e){}
+}
+addEventListener("popstate",()=>{closeSheets(true);closeViewer()});
+addEventListener("keydown",e=>{if(e.key==="Escape"){if($("#viewer").classList.contains("on"))closeViewer();else if(document.querySelector(".sheet.on"))closeSheets()}});
+function opts(el,list,form,key,multi){
+  $(el).innerHTML=list.map(([v,l])=>`<button type="button" class="chip" data-v="${v}" aria-pressed="${multi?(form[key]||[]).includes(v):form[key]===v}">${esc(l)}</button>`).join("");
+}
+
+/* ---------- leads compartidos ---------- */
+let editing=null,form={},draftT=null,lf="all";
+function paintForm(){
+  opts("#fInt",PRODS.map(p=>[p.k,p.n.replace(/ \(.*\)/,"")]),form,"int",true);opts("#fEmp",EMP,form,"emp",true);
+  opts("#fMom",MOM,form,"mom");opts("#fZona",ZONA,form,"zona");
+  opts("#fSeg",Object.entries(SEG),form,"seg");opts("#fOwn",OWN,form,"own");
+}
+const FKEY={fInt:"int",fEmp:"emp",fMom:"mom",fZona:"zona",fSeg:"seg",fOwn:"own"};
+Object.keys(FKEY).forEach(id=>$("#"+id).addEventListener("click",e=>{
+  const b=e.target.closest(".chip");if(!b)return;const key=FKEY[id],v=b.dataset.v;
+  if(key==="int"){const a=form.int||[],on=!a.includes(v);form.int=on?[...a,v]:a.filter(x=>x!==v);
+    if(on&&!form.empTouched){const e2=PROD_EMP[v],ea=form.emp||[];if(e2&&!ea.includes(e2))form.emp=[...ea,e2]}}
+  else if(key==="emp"){const a=form.emp||[];form.emp=a.includes(v)?a.filter(x=>x!==v):[...a,v];form.empTouched=true}
+  else{form[key]=form[key]===v?"":v;if(key==="zona"&&!form.ownTouched){form.own=v==="gal"?"garmo":v?"group":""}}
+  if(key==="own")form.ownTouched=true;
+  paintForm();draftSave()}));
+function formVals(){return{empresa:$("#fEmpresa").value.trim(),nombre:$("#fNombre").value.trim(),cargo:$("#fCargo").value.trim(),tel:$("#fTel").value.trim(),mail:$("#fMail").value.trim(),fecha:$("#fFecha").value,nota:$("#fNota").value.trim()}}
+function draftSave(){
+  if(editing)return;
+  clearTimeout(draftT);draftT=setTimeout(()=>{const v=formVals();
+    pref.set("draft",(!v.empresa&&!v.nombre&&!v.tel&&!v.mail&&!v.nota)?null:Object.assign(v,{form:{int:form.int||[],emp:form.emp||[],empTouched:!!form.empTouched,mom:form.mom||"",zona:form.zona||"",seg:form.seg||"",own:form.own||"",ownTouched:!!form.ownTouched}}))},300);
+}
+function leadHint(){
+  const n=formVals().empresa.toLowerCase();$("#eEmpresa").textContent="";
+  const c=n?LEADS.filter(l=>l.id!==editing&&(l.empresa||"").toLowerCase()===n).length:0;
+  $("#hEmpresa").textContent=c?`Ya hay ${c} lead${c>1?"s":""} de esta empresa en el equipo. Puedes crear otro si es otra persona.`:"";
+}
+$("#lf").addEventListener("input",()=>{leadHint();draftSave()});
+function fillForm(v){$("#fEmpresa").value=v.empresa||"";$("#fNombre").value=v.nombre||"";$("#fCargo").value=v.cargo||"";$("#fTel").value=v.tel||"";$("#fMail").value=v.mail||"";$("#fFecha").value=v.fecha||"";$("#fNota").value=v.nota||""}
+function openLead(prefill){
+  if(!guardWrite())return;
+  editing=null;
+  const dr=pref.get("draft",null),useDraft=!prefill&&dr;
+  form=Object.assign({int:[],emp:[],mom:"",zona:"",seg:"",own:""},useDraft?dr.form:(prefill||{}));
+  const d=new Date();d.setDate(d.getDate()+2);const def=d.toISOString().slice(0,10);
+  fillForm(useDraft?dr:{empresa:form.empresa,nota:form.nota,fecha:def});
+  if(!$("#fFecha").value)$("#fFecha").value=def;
+  $("#lTitle").textContent="Nuevo lead";$("#lBy").textContent="Lead creado por: "+(me.name||"tú");$("#draftNote").hidden=!useDraft;
+  $("#eEmpresa").textContent="";leadHint();paintForm();showSheet("#sheetLead","#fEmpresa");
+}
+function discardDraft(){pref.set("draft",null);openLead()}
+function leadFrom(key){const p=allPlayers().find(x=>x.key===key);if(!p)return;const r=p.r;
+  openLead({empresa:r[1],seg:r[0]||"",zona:r[4]===true?"gal":r[4]===false?"esp":"",own:r[4]===true?"garmo":r[4]===false?"group":"",nota:(r[2]?"Stand "+r[2]+". ":"")})}
+function editLead(id){
+  const l=LEADS.find(x=>x.id===id);if(!l||!guardWrite())return;editing=id;
+  form={int:l.int||[],emp:l.emp||[],empTouched:true,mom:l.mom||"",zona:l.zona||"",seg:l.seg||"",own:l.own||"",ownTouched:true};
+  fillForm(l);$("#lTitle").textContent="Editar lead";$("#lBy").textContent="Lead creado por: "+whoName(l.by);$("#draftNote").hidden=true;
+  $("#eEmpresa").textContent="";leadHint();paintForm();showSheet("#sheetLead","#fEmpresa");
+}
+function saveLead(e){
+  e.preventDefault();const v=formVals();
+  if(!v.empresa){$("#eEmpresa").textContent="Escribe el nombre de la empresa para guardar el lead.";$("#fEmpresa").focus();return false}
+  if(!guardWrite())return false;
+  const old=editing&&LEADS.find(x=>x.id===editing),id=editing||newId("l"),now=nowIso();
+  const data=Object.assign({},old||{},v,{int:form.int||[],emp:form.emp||[],mom:form.mom||"",zona:form.zona||"",seg:form.seg||"",own:form.own||"",upd:now,updBy:me.id});
+  delete data.id;
+  if(!old){data.by=me.id;data.ts=now}
+  if(!editing)pref.set("draft",null);
+  closeSheets();
+  run(()=>db.collection("leads").doc(id).set(data),!v.tel&&!v.mail?"Lead guardado sin teléfono ni email. Añádelo cuando lo tengas.":"Lead guardado");
+  return false;
+}
+function delLead(id){
+  const l=LEADS.find(x=>x.id===id);if(!l||!guardWrite())return;
+  if(!canDelete(l.by)){toast("Solo puede borrar este lead quien lo creó.");return}
+  const data=Object.assign({},l);delete data.id;
+  run(()=>db.collection("leads").doc(id).delete());
+  toast("Lead borrado",()=>{run(()=>db.collection("leads").doc(id).set(data))});
+}
+$("#lfChips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;lf=b.dataset.l;document.querySelectorAll("#lfChips .chip").forEach(c=>c.setAttribute("aria-pressed",c===b));renderLeads()});
+function renderLeads(){
+  const L=LEADS.slice().sort((a,b)=>(b.ts||"").localeCompare(a.ts||"")),nm=Object.fromEntries(PRODS.map(p=>[p.k,p.n.replace(/ \(.*\)/,"")])),momL=Object.fromEntries(MOM),ownL=Object.fromEntries(OWN),empL=Object.fromEntries(EMP);
+  const mine=L.filter(l=>l.by===me.id).length,obra=L.filter(l=>l.mom==="obra").length,sf=L.filter(l=>!l.fecha).length;
+  $("#leadSum").innerHTML=L.length?`<span>${L.length} lead${L.length>1?"s":""} del equipo</span><span>${mine} tuyos</span><span>${obra} con obra en curso</span><span>${sf} sin seguimiento</span>`:"";
+  const b=$("#bLeads");b.style.display=L.length?"inline-block":"none";b.textContent=L.length;
+  const rows=L.filter(l=>lf==="all"||(lf==="mine"&&l.by===me.id)||(lf==="obra"&&l.mom==="obra")||(lf==="sinfecha"&&!l.fecha));
+  $("#leadList").innerHTML=rows.length?rows.map(l=>`<div class="card ${l.mom==="obra"?"hot":""}"><div class="t-row"><div class="grow"><h3>${esc(l.empresa)}</h3><div class="mut">${esc([l.nombre,l.cargo].filter(Boolean).join(" · "))}</div></div>${l.own?`<span class="owner">${esc(ownL[l.own])}</span>`:""}</div>
+  <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${(l.int||[]).map(k=>`<span class="owner" style="color:var(--ink)">${esc(nm[k]||k)}</span>`).join("")}${(l.emp||[]).map(k=>`<span class="owner" style="color:var(--accent);border-color:var(--accent)">${esc(empL[k])}</span>`).join("")}${l.mom?`<span class="owner" style="color:var(--warn)">${esc(momL[l.mom])}</span>`:""}</div>
+  ${l.nota?`<p style="font-size:14px;margin:8px 0 0">${esc(l.nota)}</p>`:""}
+  <p class="mut" style="margin:6px 0 0">${l.fecha?"Seguimiento: "+esc(l.fecha):"Sin fecha de seguimiento"}</p>
+  <p class="by">Lead creado por: <b>${esc(whoName(l.by))}</b> · ${esc(fmtDate(l.ts))}${l.updBy&&l.updBy!==l.by?` · editado por ${esc(whoName(l.updBy))}`:""}</p>
+  <div class="acts">${l.tel?`<a class="btn s" href="tel:${esc(l.tel)}">Llamar</a>`:""}${l.mail?`<a class="btn s" href="mailto:${esc(l.mail)}">Email</a>`:""}<button class="btn s" onclick="editLead('${l.id}')">Editar</button>${canDelete(l.by)?`<button class="btn s d" onclick="delLead('${l.id}')">Borrar</button>`:""}</div></div>`).join(""):
+  `<div class="card"><p class="mut" style="margin:0">${L.length?"Ningún lead con este filtro.":"Aún no hay leads en el equipo. Toca el botón verde \"+ Lead\" tras cada conversación."}</p></div>`;
+}
+
+/* ---------- expositores añadidos a mano (compartidos) ---------- */
+let pEdit=null,pForm={};
+const GALOPT=[["g","Galicia"],["f","Fuera de Galicia"],["n","No sé"]];
+function paintP(){opts("#pSeg",Object.entries(SEG),pForm,"seg");opts("#pZona",GALOPT,pForm,"gal")}
+[["pSeg","seg"],["pZona","gal"]].forEach(([id,key])=>$("#"+id).addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;pForm[key]=pForm[key]===b.dataset.v?"":b.dataset.v;paintP()}));
+$("#pNombre").addEventListener("input",()=>{
+  $("#ePNombre").textContent="";const n=$("#pNombre").value.trim().toLowerCase();
+  const dup=n&&allPlayers().some(p=>(p.custom?p.custom.id!==pEdit:true)&&(p.r[1]||"").toLowerCase()===n);
+  $("#hPNombre").textContent=dup?"Ya hay un expositor con este nombre en la lista.":"";
+});
+function openPlayer(){if(!guardWrite())return;pEdit=null;pForm={seg:"D",gal:"n"};$("#pTitle").textContent="Añadir expositor";["pNombre","pStand","pTown","pDesc","pAcc"].forEach(k=>$("#"+k).value="");$("#ePNombre").textContent="";$("#hPNombre").textContent="";paintP();showSheet("#sheetPlayer","#pNombre")}
+function editPlayer(id){const c=EXPO.find(x=>x.id===id);if(!c||!guardWrite())return;pEdit=id;pForm={seg:c.seg,gal:c.gal===true?"g":c.gal===false?"f":"n"};$("#pTitle").textContent="Editar expositor";$("#pNombre").value=c.name;$("#pStand").value=c.stand||"";$("#pTown").value=c.town||"";$("#pDesc").value=c.desc||"";$("#pAcc").value=c.acc||"";$("#ePNombre").textContent="";$("#hPNombre").textContent="";paintP();showSheet("#sheetPlayer","#pNombre")}
+function savePlayer(e){
+  e.preventDefault();const name=$("#pNombre").value.trim();
+  if(!name){$("#ePNombre").textContent="Escribe el nombre de la empresa para guardar el expositor.";$("#pNombre").focus();return false}
+  if(!guardWrite())return false;
+  const old=pEdit&&EXPO.find(x=>x.id===pEdit),id=pEdit||newId("p");
+  const data=Object.assign({},old||{},{name,seg:pForm.seg||"D",stand:$("#pStand").value.trim(),town:$("#pTown").value.trim(),gal:pForm.gal==="g"?true:pForm.gal==="f"?false:null,desc:$("#pDesc").value.trim(),acc:$("#pAcc").value.trim()});
+  delete data.id;if(!old){data.by=me.id;data.ts=nowIso()}
+  closeSheets();run(()=>db.collection("expositores").doc(id).set(data),"Expositor guardado");return false;
+}
+function delPlayer(id){
+  const c=EXPO.find(x=>x.id===id);if(!c||!guardWrite())return;
+  if(!canDelete(c.by)){toast("Solo puede borrar este expositor quien lo añadió.");return}
+  const data=Object.assign({},c);delete data.id;
+  run(()=>db.collection("expositores").doc(id).delete());
+  toast("Expositor borrado",()=>{run(()=>db.collection("expositores").doc(id).set(data))});
+}
+
+/* ---------- exportar ---------- */
+const HEAD=["Fecha captura","Lead creado por","Empresa","Contacto","Cargo","Teléfono","Email","Productos","Interés en (empresa)","Momento","Zona","Segmento","Gestiona","Seguimiento","Nota"];
+function rowsOf(){
+  const nm=Object.fromEntries(PRODS.map(p=>[p.k,p.n.replace(/ \(.*\)/,"")])),momL=Object.fromEntries(MOM),zL=Object.fromEntries(ZONA),oL=Object.fromEntries(OWN),eL=Object.fromEntries(EMP);
+  return LEADS.slice().sort((a,b)=>(a.ts||"").localeCompare(b.ts||"")).map(l=>[(l.ts||"").slice(0,16).replace("T"," "),whoName(l.by).replace(" (tú)",""),l.empresa,l.nombre,l.cargo,l.tel,l.mail,(l.int||[]).map(k=>nm[k]||k).join(" + "),(l.emp||[]).map(k=>eL[k]).join(" + "),momL[l.mom]||"",zL[l.zona]||"",SEG[l.seg]||"",oL[l.own]||"",l.fecha,l.nota]);
+}
+function csv(){const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';return "﻿"+[HEAD,...rowsOf()].map(r=>r.map(q).join(";")).join("\r\n")}
+function txt(){return "Leads Conxemar 2026 (BMP Group)\n\n"+rowsOf().map((r,i)=>`${i+1}. ${r[2]}${r[3]?" - "+r[3]:""}${r[4]?" ("+r[4]+")":""}\n   Tel: ${r[5]||"-"} | Email: ${r[6]||"-"}\n   Interés: ${r[7]||"-"} | En: ${r[8]||"-"} | ${r[9]||"-"} | Gestiona: ${r[12]||"-"} | Seguimiento: ${r[13]||"-"}\n   Lead creado por: ${r[1]}${r[14]?"\n   Nota: "+r[14]:""}`).join("\n\n")}
+function openExport(){if(!LEADS.length&&!NOTES.length){toast("Aún no hay nada que exportar. Crea un lead o una nota primero.");return}showSheet("#sheetExp")}
+async function copyText(t,ok){try{await navigator.clipboard.writeText(t);toast(ok)}catch(e){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");toast(ok)}catch(_){toast("No se pudo copiar. Prueba con Descargar CSV.")}a.remove()}}
+function needLeads(){if(!LEADS.length){toast("No hay leads que exportar. Para notas, usa el otro botón.");return false}return true}
+function expDownload(){if(!needLeads())return;saveFile("leads_conxemar_2026_"+todayStr()+".csv",csv(),"text/csv;charset=utf-8");toast("CSV generado")}
+async function expShare(){
+  if(!needLeads())return;
+  if(navigator.share){try{await navigator.share({title:"Leads Conxemar 2026",text:txt()});return}catch(e){if(e&&e.name==="AbortError")return}}
+  expCopy();
+}
+function expCopy(){if(!needLeads())return;copyText(txt(),"Copiado. Pégalo en WhatsApp o en un correo.")}
+function expNotes(){
+  const L=allPlayers().filter(p=>notesOf(p.key).length).map(p=>`${p.r[1]}${p.r[2]?" (stand "+p.r[2]+")":""}\n`+notesOf(p.key).map(n=>`- ${n.text.trim()} [Nota creada por: ${whoName(n.by).replace(" (tú)","")}, ${fmtDate(n.ts)}]`).join("\n"));
+  if(!L.length){toast("No hay notas todavía.");return}
+  copyText("Notas de expositores, Conxemar 2026\n\n"+L.join("\n\n"),"Notas copiadas. Pégalas donde quieras.");
+}
+
+/* ---------- administración: accesos y catálogo (solo administradores) ---------- */
+function renderAllowed(){
+  const L=ALLOWED.slice().sort((a,b)=>a.id.localeCompare(b.id));
+  $("#allowedList").innerHTML=L.length?L.map(a=>`<li style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px"><span style="min-width:0;word-break:break-all">${esc(a.id)}${a.admin?' <span class="owner">Admin</span>':""}</span>${a.id===me.email?"":`<button class="btn s d" onclick="removeAllowed('${esc(a.id)}')">Quitar</button>`}</li>`).join(""):'<li class="mut">Nadie todavía.</li>';
+}
+function addAllowed(e){
+  e.preventDefault();const em=$("#aEmail").value.trim().toLowerCase();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){$("#eAEmail").textContent="Escribe un correo válido, por ejemplo nombre@gmail.com.";return false}
+  $("#eAEmail").textContent="";
+  run(()=>db.doc("allowed/"+em).set({admin:$("#aAdmin").checked,by:me.email,ts:nowIso()}),"Acceso concedido a "+em);
+  $("#aEmail").value="";$("#aAdmin").checked=false;return false;
+}
+function removeAllowed(em){
+  if(em===me.email)return;const a=ALLOWED.find(x=>x.id===em);
+  run(()=>db.doc("allowed/"+em).delete());
+  toast("Acceso retirado a "+em,()=>{run(()=>db.doc("allowed/"+em).set({admin:!!(a&&a.admin),by:me.email,ts:nowIso()}))});
+}
+function importCatalog(file){
+  if(!file)return;const r=new FileReader();
+  r.onload=()=>{
+    let d;try{d=JSON.parse(r.result)}catch(e){toast("El archivo no es un JSON válido.");return}
+    if(!d||!Array.isArray(d.T)||!Array.isArray(d.prods)){toast("Este archivo no parece ser catalogo.json: faltan los expositores o los productos.");return}
+    run(()=>db.doc("config/catalog").set(d),"Catálogo cargado: "+d.T.length+" expositores");
+  };
+  r.onerror=()=>toast("No se pudo leer el archivo.");r.readAsText(file);
+}
+
+/* ---------- render global e inicio ---------- */
+function renderAll(){renderT();renderLeads()}
+$("#phase").textContent=phaseLabel();
+renderAll();
+if("serviceWorker" in navigator){try{navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}}
+boot();
+</script>
+</body>
+</html>
