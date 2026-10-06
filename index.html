@@ -80,7 +80,7 @@ header small{display:block;font-size:12px;color:var(--brand-mute)}
 .dot.ok{background:#4ade80}.dot.pend{background:#fbbf24}.dot.off{background:#f87171}
 main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px 96px;min-height:0}
 .view{display:none}.view.on{display:block}
-nav{flex:none;display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom, 0px)}
+nav{flex:none;display:grid;grid-template-columns:repeat(2,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom, 0px)}
 nav button{position:relative;background:none;border:0;color:var(--muted);padding:9px 2px 8px;font:inherit;font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:56px;cursor:pointer}
 nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 nav button[aria-selected="true"]{color:var(--accent)}
@@ -170,8 +170,9 @@ details[open] summary::after{content:"–"}
 #gateBody{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:420px;width:100%}
 #gateBody .btn svg{flex:none}
 code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
-.signout{background:none;border:0;color:var(--brand-mute);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:6px 0 6px 10px;min-height:32px;margin-left:auto}
-.sync{width:100%}
+.signout{background:none;border:0;color:var(--brand-mute);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:6px 0 6px 10px;min-height:32px}
+.sync{width:100%;flex-wrap:wrap}
+.sync .links{margin-left:auto;display:flex}
 </style>
 </head>
 <body>
@@ -182,7 +183,7 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
       <div><h1>Conxemar 2026</h1><small>BMP Group · Stand Garmo 2MB15 · IFEVI Vigo</small></div>
       <span class="pill" id="phase">...</span>
     </div>
-    <div class="sync"><span class="dot" id="dot"></span><span id="who">Conectando...</span><button class="signout" id="signout" type="button">Salir</button></div>
+    <div class="sync"><span class="dot" id="dot"></span><span id="who">Conectando...</span><span class="links"><button class="signout" id="adminLink" type="button" hidden>Administración</button><button class="signout" id="helpLink" type="button">Ayuda</button><button class="signout" id="signout" type="button">Salir</button></span></div>
   </header>
 
   <main id="main">
@@ -190,7 +191,7 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
     <div class="alert" id="bFs" hidden role="alert"></div>
 
     <!-- EXPOSITORES -->
-    <section class="view on" id="v-obj">
+    <section class="view" id="v-obj">
       <h2>Expositores</h2>
       <p class="lead">Empresas del catálogo con su descripción según su web. "Visitado" es solo tuyo.</p>
       <button class="btn full" style="margin-bottom:10px" onclick="openPlayer()">+ Añadir expositor a mano</button>
@@ -212,7 +213,7 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
     </section>
 
     <!-- LEADS -->
-    <section class="view" id="v-leads">
+    <section class="view on" id="v-leads">
       <h2>Leads</h2>
       <p class="lead">Compartidos con todo el equipo. Cada lead sale con producto de interés y fecha de seguimiento.</p>
       <div class="sum" id="leadSum"></div>
@@ -226,53 +227,13 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
       <div id="leadList"></div>
     </section>
 
-    <!-- STAND -->
-    <section class="view" id="v-stand">
-      <h2>El stand</h2>
-      <p class="lead">Stand de Garmo (nuestro distribuidor en Galicia) con producto de las tres empresas de BMP Group.</p>
-
-      <div id="standDyn"></div>
-
-      <details><summary>Cómo usar esta app</summary><div class="in">
-        <ul style="padding-left:18px;margin:0;font-size:14px">
-          <li style="padding:4px 0"><b>Compartido:</b> los leads, las notas, las fotos y los expositores añadidos los ve todo el equipo, con el nombre de quien los creó.</li>
-          <li style="padding:4px 0"><b>Visitado:</b> es personal. Cada persona marca lo suyo y no afecta a los demás.</li>
-          <li style="padding:4px 0"><b>Lead:</b> el botón verde "+ Lead" está siempre abajo a la derecha. Si cierras el formulario a medias, se guarda un borrador en tu móvil.</li>
-          <li style="padding:4px 0"><b>Faltan empresas:</b> en Expositores, "Añadir expositor a mano".</li>
-          <li style="padding:4px 0"><b>Borrar:</b> solo puedes borrar lo que creaste tú, y siempre puedes deshacer durante unos segundos.</li>
-          <li style="padding:4px 0"><b>Exportar:</b> desde Leads, para llevarte una copia en CSV.</li>
-        </ul>
-      </div></details>
-
-      <details open><summary>Producto expuesto y cómo abrir la conversación</summary><div class="in" id="prods"></div></details>
-
-      <details><summary>Qué llevar al stand</summary><div class="in"><ul class="chk" id="llevar"></ul></div></details>
-      <details><summary>Pendiente de verificar</summary><div class="in"><ul class="chk" id="pend"></ul></div></details>
-
-      
-      <details id="adminBox" hidden><summary>Equipo y catálogo (administración)</summary><div class="in">
-        <h3>Administradores y excepciones</h3>
-        <p class="mut" style="margin:0 0 8px">Entran solos todos los correos @bmpiberica.com y @comercialgarmo.com. Aquí solo hace falta añadir a alguien de otro dominio, o marcar quién es administrador.</p>
-        <form id="af" onsubmit="return addAllowed(event)" novalidate>
-          <label for="aEmail" style="margin-top:0">Correo de Google</label><input id="aEmail" type="email" inputmode="email" placeholder="nombre@gmail.com" autocomplete="off">
-          <div class="err" id="eAEmail" role="alert"></div>
-          <label style="display:flex;gap:10px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:var(--ink)"><input type="checkbox" id="aAdmin" style="width:22px;min-height:22px;height:22px;flex:none"> Administrador: puede borrar lo de otros y gestionar accesos</label>
-          <button class="btn p full" type="submit" style="margin-top:10px">Dar acceso</button>
-        </form>
-        <ul class="chk" id="allowedList" style="margin-top:12px"></ul>
-        <h3 style="margin-top:16px">Catálogo</h3>
-        <p class="mut" id="catStatus" style="margin:0">Sin catálogo cargado.</p>
-        <label for="catFile">Cargar catalogo.json</label><input id="catFile" type="file" accept="application/json,.json" onchange="importCatalog(this.files[0])">
-      </div></details>
-    </section>
   </main>
 
   <button class="fab" id="fab" onclick="openLead()" aria-label="Nuevo lead">+ Lead</button>
 
   <nav id="nav" role="tablist" aria-label="Secciones">
-    <button role="tab" data-v="obj" aria-selected="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>Expositores</button>
-    <button role="tab" data-v="leads" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>Leads<i class="b" id="bLeads" style="display:none"></i></button>
-    <button role="tab" data-v="stand" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 9l1-5h16l1 5M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12v8h14v-8"/></svg>Stand</button>
+    <button role="tab" data-v="leads" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>Leads<i class="b" id="bLeads" style="display:none"></i></button>
+    <button role="tab" data-v="obj" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>Expositores</button>
   </nav>
 </div>
 
@@ -341,6 +302,43 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
   </div>
 </div>
 
+
+<!-- hoja ayuda -->
+<div class="sheet" id="sheetHelp" role="dialog" aria-modal="true" aria-labelledby="hTitle">
+  <div class="grab"></div>
+  <h2 id="hTitle">Cómo usar esta app</h2>
+  <ul style="padding-left:18px;margin:0 0 14px;font-size:14px">
+    <li style="padding:4px 0"><b>Compartido:</b> los leads, las notas, las fotos y los expositores añadidos los ve todo el equipo, con el nombre de quien los creó.</li>
+    <li style="padding:4px 0"><b>Lead:</b> el botón verde "+ Lead" está siempre abajo a la derecha. Si cierras el formulario a medias, se guarda un borrador en tu móvil.</li>
+    <li style="padding:4px 0"><b>Visitado:</b> es personal. Cada persona marca lo suyo y no afecta a los demás.</li>
+    <li style="padding:4px 0"><b>Faltan empresas:</b> en Expositores, "Añadir expositor a mano".</li>
+    <li style="padding:4px 0"><b>Borrar:</b> solo puedes borrar lo que creaste tú, y siempre puedes deshacer durante unos segundos.</li>
+    <li style="padding:4px 0"><b>Exportar:</b> desde Leads, para llevarte una copia en CSV.</li>
+  </ul>
+  <button class="btn full" onclick="closeSheets()">Cerrar</button>
+</div>
+
+<!-- hoja administración (solo administradores) -->
+<div class="sheet" id="sheetAdmin" role="dialog" aria-modal="true" aria-labelledby="aTitle">
+  <div class="grab"></div>
+  <h2 id="aTitle">Administración</h2>
+  <div id="adminBox">
+        <h3>Administradores y excepciones</h3>
+        <p class="mut" style="margin:0 0 8px">Entran solos todos los correos @bmpiberica.com y @comercialgarmo.com. Aquí solo hace falta añadir a alguien de otro dominio, o marcar quién es administrador.</p>
+        <form id="af" onsubmit="return addAllowed(event)" novalidate>
+          <label for="aEmail" style="margin-top:0">Correo de Google</label><input id="aEmail" type="email" inputmode="email" placeholder="nombre@gmail.com" autocomplete="off">
+          <div class="err" id="eAEmail" role="alert"></div>
+          <label style="display:flex;gap:10px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:var(--ink)"><input type="checkbox" id="aAdmin" style="width:22px;min-height:22px;height:22px;flex:none"> Administrador: puede borrar lo de otros y gestionar accesos</label>
+          <button class="btn p full" type="submit" style="margin-top:10px">Dar acceso</button>
+        </form>
+        <ul class="chk" id="allowedList" style="margin-top:12px"></ul>
+        <h3 style="margin-top:16px">Catálogo</h3>
+        <p class="mut" id="catStatus" style="margin:0">Sin catálogo cargado.</p>
+        <label for="catFile">Cargar catalogo.json</label><input id="catFile" type="file" accept="application/json,.json" onchange="importCatalog(this.files[0])">
+      </div>
+  <button class="btn full" style="margin-top:14px" onclick="closeSheets()">Cerrar</button>
+</div>
+
 <div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Foto"><img id="vimg" alt="Foto"><div class="cap" id="vcap"></div><div class="vb"><button class="btn" onclick="closeViewer()">Cerrar</button><button class="btn" onclick="photoSave()">Descargar</button><button class="btn" id="vdel" onclick="photoDelete()" style="color:#f87171">Borrar</button></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -366,6 +364,8 @@ const SEG={A:"Competencia",B:"Prescriptor",C:"Distribuidor",D:"Cliente final"};
 const DOMINIOS=["bmpiberica.com","comercialgarmo.com"];
 /* Quien no tenga cuenta de Google de empresa entra con un enlace enviado a su correo. Solo para este dominio. */
 const DOMINIO_ENLACE="comercialgarmo.com";
+/* El panel de Administración (accesos y catálogo) solo lo ve esta persona, aunque haya otros administradores. */
+const PANEL_ADMIN_EMAIL="m.aliena@bmpiberica.com";
 /* El catálogo (T), los productos, las listas y los textos del stand NO están en este archivo:
    se cargan desde la base de datos al iniciar sesión (config/catalog). */
 let PRODS=[],T=[],LLEVAR=[],PEND=[],KEYS=[],CATALOG=null;
@@ -493,10 +493,6 @@ function applyCatalog(d){
   CATALOG=d;PRODS=d.prods||[];T=d.T||(d.Tjson?JSON.parse(d.Tjson):[]);LLEVAR=d.llevar||[];PEND=d.pend||[];
   KEYS=T.map(r=>slug(r[1])+"_"+slug(r[2]));
   if(new Set(KEYS).size!==KEYS.length)console.warn("Claves de expositor duplicadas");
-  $("#prods").innerHTML=PRODS.map(p=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)"><h3>${esc(p.n)}</h3><div class="mut">${esc(p.e)}</div><p style="font-size:14px;margin:6px 0 0"><b>Para abrir:</b> ${esc(p.q)}</p><p style="font-size:14px;margin:4px 0 0"><b>Argumento:</b> ${esc(p.a)}</p></div>`).join("")+`<p class="mut" style="margin-top:8px">Argumentos orientativos: contrastarlos con la ficha técnica de cada producto antes de prometer cifras.</p>`;
-  $("#llevar").innerHTML=LLEVAR.map((x,i)=>chkItem("lv_"+i,x)).join("");
-  $("#pend").innerHTML=PEND.map((x,i)=>chkItem("pend_"+i,x)).join("");
-  $("#standDyn").innerHTML=d.standHtml||"";
   $("#noCatalog").hidden=true;
   $("#catStatus").textContent="Catálogo cargado: "+T.length+" expositores"+(d.generado?" (fecha "+d.generado+")":"")+".";
   sched();
@@ -512,20 +508,20 @@ function subscribe(){
   setTimeout(()=>{if(!CATALOG&&$("#bFs").hidden&&$("#noCatalog").hidden)fsProblem("catálogo","sin respuesta en 10 s")},10000);
   db.doc("config/catalog").onSnapshot(s=>{
     if(s.exists){$("#bFs").hidden=true;applyCatalog(s.data())}
-    else if(!(s.metadata&&s.metadata.fromCache)){CATALOG=null;T=[];KEYS=[];$("#noCatalog").hidden=false;$("#noCatalog").innerHTML=me.canEdit?"<b>Falta cargar el catálogo.</b> Ve a la pestaña Stand, sección «Equipo y catálogo», y elige el archivo catalogo.json.":"<b>El catálogo aún no está cargado.</b> Avisa a Miguel.";sched()}
+    else if(!(s.metadata&&s.metadata.fromCache)){CATALOG=null;T=[];KEYS=[];$("#noCatalog").hidden=false;$("#noCatalog").innerHTML=(me.canEdit&&me.email===PANEL_ADMIN_EMAIL)?"<b>Falta cargar el catálogo.</b> Pulsa «Administración» (arriba a la derecha) y elige el archivo catalogo.json.":"<b>El catálogo aún no está cargado.</b> Avisa a Miguel.";sched()}
   },onErr);
   db.collection("leads").onSnapshot(s=>{LEADS=docs(s);needNames(LEADS.flatMap(l=>[l.by,l.updBy]));meta(s);sched()},onErr);
   db.collection("notes").onSnapshot(s=>{NOTES=docs(s);needNames(NOTES.flatMap(n=>[n.by,n.updBy]));meta(s);sched()},onErr);
   db.collection("expositores").onSnapshot(s=>{EXPO=docs(s);needNames(EXPO.map(x=>x.by));meta(s);sched()},onErr);
   db.collection("photoidx").onSnapshot(s=>{PIDX=docs(s);needNames(PIDX.map(p=>p.by));meta(s);sched()},onErr);
   db.doc("users/"+me.id+"/private/visits").onSnapshot(s=>{V=s.exists?((s.data()||{}).keys||{}):{};sched()},onErr);
-  if(me.canEdit){$("#adminBox").hidden=false;db.collection("allowed").onSnapshot(s=>{ALLOWED=docs(s);renderAllowed()},onErr)}
+  if(me.canEdit&&me.email===PANEL_ADMIN_EMAIL){$("#adminLink").hidden=false;db.collection("allowed").onSnapshot(s=>{ALLOWED=docs(s);renderAllowed()},onErr)}
 }
 function startApp(){
   if(started)return;started=true;
   gateOff();$("#phase").textContent=phaseLabel();setSync();
   db.doc("users/"+me.id).set({name:me.name,email:me.email,upd:nowIso()},{merge:true}).catch(e=>fsProblem("guardar ficha",e));
-  subscribe();go(pref.get("tab","obj"));
+  subscribe();go(pref.get("tab","leads"));
 }
 function boot(){
   const ok=FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.apiKey.indexOf("PEGAR")!==0;
@@ -547,11 +543,13 @@ function boot(){
     startApp();
   });
 }
+$("#helpLink").addEventListener("click",()=>showSheet("#sheetHelp"));
+$("#adminLink").addEventListener("click",()=>showSheet("#sheetAdmin"));
 $("#signout").addEventListener("click",()=>{if(auth)auth.signOut().then(()=>location.reload())});
 
 /* ---------- navegación ---------- */
 function go(v){
-  if(!["obj","leads","stand"].includes(v))v="obj";
+  if(!["leads","obj"].includes(v))v="leads";
   document.querySelectorAll(".view").forEach(e=>e.classList.toggle("on",e.id==="v-"+v));
   document.querySelectorAll("#nav button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));
   $("#main").scrollTop=0;pref.set("tab",v);
