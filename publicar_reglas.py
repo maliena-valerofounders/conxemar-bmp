@@ -32,7 +32,8 @@ problemas = llamar("POST", base + ":test", fuente).get("issues")
 if problemas:
     sys.exit("Las reglas tienen errores, no se publica nada: " + json.dumps(problemas))
 conjunto = llamar("POST", base + "/rulesets", fuente)["name"]
-nombre = "projects/%s/releases/cloud.firestore/database/%s" % (PROYECTO, BASE)
+# Para bases con nombre el release es cloud.firestore/<base> (SIN el segmento "database/": la API lo acepta pero Firestore lo ignora).
+nombre = "projects/%s/releases/cloud.firestore/%s" % (PROYECTO, BASE)
 try:
     llamar("PATCH", "https://firebaserules.googleapis.com/v1/" + nombre, {"release": {"name": nombre, "rulesetName": conjunto}})
 except SystemExit:
