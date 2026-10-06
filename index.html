@@ -538,6 +538,7 @@ function boot(){
   const ok=FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.apiKey.indexOf("PEGAR")!==0;
   if(!ok){showSetup();return}
   gate('<p class="lead">Comprobando sesión...</p>');
+  setTimeout(()=>{if(!started&&!$("#gate").hidden&&$("#gateBody").textContent.indexOf("Comprobando")>=0)gate('<h2>Está tardando más de lo normal</h2><p class="lead">Puede ser la cobertura o que tengas la app abierta en otra pestaña del navegador.</p><button class="btn p full" onclick="location.reload()">Reintentar</button><p class="hint">Si sigue igual, cierra las otras pestañas de la app y vuelve a abrir el enlace.</p>')},10000);
   firebase.initializeApp(FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();
   db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
   auth.getRedirectResult().catch(()=>{});
@@ -547,7 +548,7 @@ function boot(){
     linking=false;
     me={id:u.uid,name:u.displayName||u.email||"",email:(u.email||"").toLowerCase(),canEdit:false};
     const domOk=DOMINIOS.indexOf((me.email.split("@")[1]||""))>=0;
-    let a=null;try{a=await db.doc("allowed/"+me.email).get()}catch(e){}
+    let a=null;if(!domOk){try{a=await Promise.race([db.doc("allowed/"+me.email).get(),new Promise((_,no)=>setTimeout(no,8000))])}catch(e){}}
     canWrite=domOk||!!(a&&a.exists);me.canEdit=PANEL_ADMIN_EMAILS.includes(me.email);
     if(!canWrite){showDenied();return}
     if(!(u.displayName||"").trim()){showName();return}
