@@ -17,7 +17,7 @@ A diferencia del CRM, aquí el navegador habla directamente con Firestore y la s
 - **Con Google:** cualquier cuenta con correo **@bmpiberica.com** o **@comercialgarmo.com** (correo verificado).
 - **Con enlace por correo** (para quien no tenga cuenta de Google): solo **@comercialgarmo.com**. La persona escribe su correo, recibe un enlace de un solo uso y, al abrirlo, la app le pide su nombre y apellido, que saldrá en sus leads y notas. Si abre el enlace en otro dispositivo, la app le vuelve a pedir el correo.
 - Misma cuenta en varios dispositivos: ve todo lo suyo. No se sincronizan los borradores sin guardar ni las casillas de la pestaña Stand.
-- La colección  solo sirve para excepciones de otros dominios (documento con el correo en minúsculas) y para marcar administradores ().
+- La colección `allowed` solo sirve para excepciones de otros dominios (documento con el correo en minúsculas) y para marcar administradores (`admin: true`).
 - Limitación: el nombre lo escribe cada persona, así que no es a prueba de suplantación entre compañeros.
 
 ## Qué garantizan las reglas (probadas con 25 casos en el simulador de Firebase)
