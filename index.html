@@ -333,7 +333,7 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
   <h2 id="aTitle">Administración</h2>
   <div id="adminBox">
         <h3>Administradores y excepciones</h3>
-        <p class="mut" style="margin:0 0 8px">Entran solos todos los correos @bmpiberica.com y @comercialgarmo.com. Aquí solo hace falta añadir a alguien de otro dominio. Los administradores (Miguel e Iván) están fijados en las reglas.</p>
+        <p class="mut" style="margin:0 0 8px">Entran solos todos los correos @bmpiberica.com, @comercialgarmo.com y @repro.es. Aquí solo hace falta añadir a alguien de otro dominio. Los administradores (Miguel e Iván) están fijados en las reglas.</p>
         <form id="af" onsubmit="return addAllowed(event)" novalidate>
           <label for="aEmail" style="margin-top:0">Correo de Google</label><input id="aEmail" type="email" inputmode="email" placeholder="nombre@gmail.com" autocomplete="off">
           <div class="err" id="eAEmail" role="alert"></div>
@@ -374,9 +374,9 @@ const ACC=Object.fromEntries(ACCIONES);
 const PROD_EMP={enr:"bmp",cor:"bmp",bat:"repro",ram:"campisa"};
 const SEG={A:"Competencia",B:"Prescriptor",C:"Distribuidor",D:"Cliente final"};
 /* Entran automáticamente las cuentas de estos dominios (las reglas de Firestore lo exigen igual). */
-const DOMINIOS=["bmpiberica.com","comercialgarmo.com"];
+const DOMINIOS=["bmpiberica.com","comercialgarmo.com","repro.es"];
 /* Quien no tenga cuenta de Google de empresa entra con un enlace enviado a su correo. Solo para este dominio. */
-const DOMINIO_ENLACE="comercialgarmo.com";
+const DOMINIOS_ENLACE=["comercialgarmo.com","repro.es"];const DOMINIO_ENLACE=DOMINIOS_ENLACE[0];
 /* Administradores: mismos correos que fijan las reglas de Firestore (isAdmin). */
 const PANEL_ADMIN_EMAILS=["m.aliena@bmpiberica.com","i.huertas@bmpiberica.com"];
 /* El catálogo (T), los productos, las listas y los textos del stand NO están en este archivo:
@@ -403,14 +403,14 @@ function gate(html){const g=$("#gate");g.hidden=false;$("#gateBody").innerHTML=h
 function gateOff(){$("#gate").hidden=true}
 const GOOGLE_SVG='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.5z"/><path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.6l3.8-3z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3A12 12 0 0 0 1.8 7.1l3.8 3C6.5 6.8 9 4.8 12 4.8z"/></svg>';
 function showLogin(msg){
-  gate(`<h2>Conxemar 2026</h2><p class="lead">App del equipo de BMP Group y Garmo.</p>${msg?`<p class="err" role="alert">${esc(msg)}</p>`:""}<button class="btn p full" id="btnLogin">${GOOGLE_SVG} Entrar con Google</button><p class="hint" style="margin:8px 0 14px">Con tu cuenta de empresa de @bmpiberica.com o @comercialgarmo.com.</p>
-  <div style="border-top:1px solid var(--line);padding-top:14px"><label for="loginEmail" style="margin-top:0">¿Tu correo de Garmo no es de Google?</label><input id="loginEmail" type="email" inputmode="email" autocomplete="email" placeholder="nombre@${DOMINIO_ENLACE}"><div class="err" id="eLoginEmail" role="alert"></div><button class="btn full" id="btnLink" style="margin-top:8px">Enviarme un enlace de acceso</button><p class="hint">Te llega un enlace al correo. Al abrirlo entras sin contraseña.</p></div>`);
+  gate(`<h2>Conxemar 2026</h2><p class="lead">App del equipo de BMP Group, Garmo y Repro.</p>${msg?`<p class="err" role="alert">${esc(msg)}</p>`:""}<button class="btn p full" id="btnLogin">${GOOGLE_SVG} Entrar con Google</button><p class="hint" style="margin:8px 0 14px">Con tu cuenta de empresa de @bmpiberica.com o @comercialgarmo.com.</p>
+  <div style="border-top:1px solid var(--line);padding-top:14px"><label for="loginEmail" style="margin-top:0">¿Tu correo de Garmo o Repro no es de Google?</label><input id="loginEmail" type="email" inputmode="email" autocomplete="email" placeholder="nombre@${DOMINIO_ENLACE}"><div class="err" id="eLoginEmail" role="alert"></div><button class="btn full" id="btnLink" style="margin-top:8px">Enviarme un enlace de acceso</button><p class="hint">Te llega un enlace al correo. Al abrirlo entras sin contraseña.</p></div>`);
   $("#btnLogin").onclick=login;$("#btnLink").onclick=sendLink;
 }
 async function sendLink(){
   const em=$("#loginEmail").value.trim().toLowerCase(),err=$("#eLoginEmail");
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){err.textContent="Escribe tu correo completo, por ejemplo nombre@"+DOMINIO_ENLACE+".";return}
-  if(em.split("@")[1]!==DOMINIO_ENLACE){err.textContent="El acceso con enlace es solo para correos @"+DOMINIO_ENLACE+". Con otro correo, entra con Google.";return}
+  if(DOMINIOS_ENLACE.indexOf(em.split("@")[1])<0){err.textContent="El acceso con enlace es solo para correos @comercialgarmo.com o @repro.es. Con otro correo, entra con Google.";return}
   err.textContent="";$("#btnLink").disabled=true;
   try{await auth.sendSignInLinkToEmail(em,{url:location.origin+"/",handleCodeInApp:true});pref.set("emailLink",em);showLinkSent(em)}
   catch(e){$("#btnLink").disabled=false;err.textContent=e&&e.code==="auth/too-many-requests"?"Demasiados intentos. Espera unos minutos.":"No se pudo enviar el enlace. Comprueba la conexión e inténtalo de nuevo."}
@@ -442,7 +442,7 @@ function showName(){
   };
 }
 function showDenied(){
-  gate(`<h2>Todavía no tienes acceso</h2><p class="lead">Has entrado como <b>${esc(me.email)}</b>. Solo pueden entrar cuentas de @bmpiberica.com o @comercialgarmo.com.</p><p style="font-size:14px;margin:0 0 12px">Cierra sesión y entra con tu cuenta de empresa. Si tu correo es de otro dominio, pide a Miguel que te autorice.</p><div class="acts"><button class="btn p" id="btnOut">Cerrar sesión</button><button class="btn" id="btnRetry">Ya me han autorizado</button></div>`);
+  gate(`<h2>Todavía no tienes acceso</h2><p class="lead">Has entrado como <b>${esc(me.email)}</b>. Solo pueden entrar cuentas de @bmpiberica.com, @comercialgarmo.com o @repro.es.</p><p style="font-size:14px;margin:0 0 12px">Cierra sesión y entra con tu cuenta de empresa. Si tu correo es de otro dominio, pide a Miguel que te autorice.</p><div class="acts"><button class="btn p" id="btnOut">Cerrar sesión</button><button class="btn" id="btnRetry">Ya me han autorizado</button></div>`);
   $("#btnOut").onclick=()=>auth.signOut();$("#btnRetry").onclick=()=>location.reload();
 }
 function showSetup(){

@@ -2,7 +2,7 @@ rules_version = '2';
 
 // Conxemar BMP Group: reglas de seguridad de Firestore.
 // Lo que garantizan, aunque alguien manipule el código de la web:
-//  - solo entran cuentas con correo @bmpiberica.com o @comercialgarmo.com
+//  - solo entran cuentas con correo @bmpiberica.com, @comercialgarmo.com o @repro.es
 //    (o personas añadidas a mano en la colección "allowed")
 //  - "creado por" (campo by) siempre es el usuario que escribe y no se puede cambiar
 //  - solo el autor (o un administrador) borra lo suyo
@@ -18,7 +18,7 @@ service cloud.firestore {
       return request.auth.token.email.lower();
     }
     function domainOk() {
-      return myEmail().split('@')[1] in ['bmpiberica.com', 'comercialgarmo.com'];
+      return myEmail().split('@')[1] in ['bmpiberica.com', 'comercialgarmo.com', 'repro.es'];
     }
     function isAllowed() {
       return signedIn()
