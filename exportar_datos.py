@@ -10,7 +10,7 @@ Hay que ejecutarlo a mano, con la sesión de gcloud de un Propietario del proyec
 
 Genera (CSV para Excel en español: separador ';', UTF-8 con BOM):
     leads.csv, notas.csv, expositores_anadidos.csv, visitas_por_usuario.csv, usuarios.csv,
-    fotos/ (JPG) + fotos.csv, datos_completos.json (copia sin fotos) y LEEME_exportacion.txt
+    fotos/ (JPG, incluidas las tarjetas de contacto de los leads) + fotos.csv, datos_completos.json (copia sin fotos) y LEEME_exportacion.txt
 
 IMPORTANTE: la carpeta contiene datos personales de contactos. Guárdala donde corresponda y
 NUNCA la subas al repositorio (exportacion_*/ está en .gitignore).
@@ -26,6 +26,7 @@ MOM = {"obra": "Obra en curso", "proy": "Proyecto 6 a 12 meses", "info": "Solo i
 ZONA = {"gal": "Galicia", "esp": "Resto de España", "pt": "Portugal", "ext": "Extranjero"}
 OWN = {"garmo": "Garmo", "group": "BMP Group"}
 EMP = {"bmp": "BMP Ibérica", "repro": "Grupo Repro", "campisa": "Campisa Ibérica"}
+ACC = {"llamada": "Llamada", "email": "Email", "visita": "Visita presencial"}
 SEG = {"A": "Competencia", "B": "Prescriptor", "C": "Distribuidor", "D": "Cliente final"}
 
 
@@ -131,6 +132,8 @@ def main():
     anad = coleccion("expositores")
     for c in anad:
         exp["c_" + c["_id"]] = (c.get("name", ""), c.get("stand", ""))
+    for l in leads:
+        exp["l_" + l["_id"]] = ("Tarjeta de contacto: " + (l.get("empresa") or "lead"), "")
     fidx = coleccion("photoidx")
     usuarios = coleccion("users")
     allowed = coleccion("allowed")
@@ -165,13 +168,13 @@ def main():
                       " + ".join(prods.get(k, k) for k in l.get("int", [])),
                       " + ".join(EMP.get(k, k) for k in l.get("emp", [])),
                       MOM.get(l.get("mom"), ""), ZONA.get(l.get("zona"), ""), SEG.get(l.get("seg"), ""),
-                      OWN.get(l.get("own"), ""), l.get("fecha", ""), l.get("nota", ""),
+                      OWN.get(l.get("own"), ""), ACC.get(l.get("accion"), ""), l.get("fecha", ""), l.get("nota", ""),
                       quien(l.get("updBy")) if l.get("updBy") and l.get("updBy") != l.get("by") else "",
                       fecha(l.get("upd")), l["_id"]])
     csv_out(os.path.join(salida, "leads.csv"),
             ["Fecha captura", "Lead creado por", "Email del creador", "Empresa", "Contacto", "Cargo", "Teléfono",
              "Email", "Productos", "Interés en (empresa)", "Momento", "Zona", "Segmento", "Gestiona",
-             "Seguimiento", "Nota", "Editado por", "Última edición", "Id"], filas)
+             "Acción programada", "Fecha de la acción", "Nota", "Editado por", "Última edición", "Id"], filas)
 
     # --- notas.csv
     filas = []
@@ -218,7 +221,7 @@ def main():
             f.write(base64.b64decode(data.split(",", 1)[-1]))
         filas.append([archivo, e[0], e[1], quien(p.get("by")), fecha(p.get("ts"))])
         hechas += 1
-    csv_out(os.path.join(salida, "fotos.csv"), ["Archivo", "Expositor", "Stand", "Foto creada por", "Fecha"], filas)
+    csv_out(os.path.join(salida, "fotos.csv"), ["Archivo", "Asociada a", "Stand", "Foto creada por", "Fecha"], filas)
 
     # --- copia completa (sin las imágenes, que van en fotos/)
     with open(os.path.join(salida, "datos_completos.json"), "w", encoding="utf-8") as f:
