@@ -333,11 +333,11 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
   <h2 id="aTitle">Administración</h2>
   <div id="adminBox">
         <h3>Administradores y excepciones</h3>
-        <p class="mut" style="margin:0 0 8px">Entran solos todos los correos @bmpiberica.com y @comercialgarmo.com. Aquí solo hace falta añadir a alguien de otro dominio, o marcar quién es administrador.</p>
+        <p class="mut" style="margin:0 0 8px">Entran solos todos los correos @bmpiberica.com y @comercialgarmo.com. Aquí solo hace falta añadir a alguien de otro dominio. Los administradores (Miguel e Iván) están fijados en las reglas.</p>
         <form id="af" onsubmit="return addAllowed(event)" novalidate>
           <label for="aEmail" style="margin-top:0">Correo de Google</label><input id="aEmail" type="email" inputmode="email" placeholder="nombre@gmail.com" autocomplete="off">
           <div class="err" id="eAEmail" role="alert"></div>
-          <label style="display:flex;gap:10px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:var(--ink)"><input type="checkbox" id="aAdmin" style="width:22px;min-height:22px;height:22px;flex:none"> Administrador: puede borrar lo de otros y gestionar accesos</label>
+          <label hidden style="display:flex;gap:10px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;font-weight:400;color:var(--ink)"><input type="checkbox" id="aAdmin" hidden style="width:22px;min-height:22px;height:22px;flex:none"> </label>
           <button class="btn p full" type="submit" style="margin-top:10px">Dar acceso</button>
         </form>
         <ul class="chk" id="allowedList" style="margin-top:12px"></ul>
@@ -377,8 +377,8 @@ const SEG={A:"Competencia",B:"Prescriptor",C:"Distribuidor",D:"Cliente final"};
 const DOMINIOS=["bmpiberica.com","comercialgarmo.com"];
 /* Quien no tenga cuenta de Google de empresa entra con un enlace enviado a su correo. Solo para este dominio. */
 const DOMINIO_ENLACE="comercialgarmo.com";
-/* El panel de Administración (accesos y catálogo) solo lo ve esta persona, aunque haya otros administradores. */
-const PANEL_ADMIN_EMAIL="m.aliena@bmpiberica.com";
+/* Administradores: mismos correos que fijan las reglas de Firestore (isAdmin). */
+const PANEL_ADMIN_EMAILS=["m.aliena@bmpiberica.com","i.huertas@bmpiberica.com"];
 /* El catálogo (T), los productos, las listas y los textos del stand NO están en este archivo:
    se cargan desde la base de datos al iniciar sesión (config/catalog). */
 let PRODS=[],T=[],LLEVAR=[],PEND=[],KEYS=[],CATALOG=null;
@@ -521,14 +521,14 @@ function subscribe(){
   setTimeout(()=>{if(!CATALOG&&$("#bFs").hidden&&$("#noCatalog").hidden)fsProblem("catálogo","sin respuesta en 10 s")},10000);
   db.doc("config/catalog").onSnapshot(s=>{
     if(s.exists){$("#bFs").hidden=true;applyCatalog(s.data())}
-    else if(!(s.metadata&&s.metadata.fromCache)){CATALOG=null;T=[];KEYS=[];$("#noCatalog").hidden=false;$("#noCatalog").innerHTML=(me.canEdit&&me.email===PANEL_ADMIN_EMAIL)?"<b>Falta cargar el catálogo.</b> Pulsa «Administración» (arriba a la derecha) y elige el archivo catalogo.json.":"<b>El catálogo aún no está cargado.</b> Avisa a Miguel.";sched()}
+    else if(!(s.metadata&&s.metadata.fromCache)){CATALOG=null;T=[];KEYS=[];$("#noCatalog").hidden=false;$("#noCatalog").innerHTML=(me.canEdit)?"<b>Falta cargar el catálogo.</b> Pulsa «Administración» (arriba a la derecha) y elige el archivo catalogo.json.":"<b>El catálogo aún no está cargado.</b> Avisa a Miguel.";sched()}
   },onErr);
   db.collection("leads").onSnapshot(s=>{LEADS=docs(s);needNames(LEADS.flatMap(l=>[l.by,l.updBy]));meta(s);sched()},onErr);
   db.collection("notes").onSnapshot(s=>{NOTES=docs(s);needNames(NOTES.flatMap(n=>[n.by,n.updBy]));meta(s);sched()},onErr);
   db.collection("expositores").onSnapshot(s=>{EXPO=docs(s);needNames(EXPO.map(x=>x.by));meta(s);sched()},onErr);
   db.collection("photoidx").onSnapshot(s=>{PIDX=docs(s);needNames(PIDX.map(p=>p.by));meta(s);sched()},onErr);
   db.doc("users/"+me.id+"/private/visits").onSnapshot(s=>{V=s.exists?((s.data()||{}).keys||{}):{};sched()},onErr);
-  if(me.canEdit&&me.email===PANEL_ADMIN_EMAIL){$("#adminLink").hidden=false;db.collection("allowed").onSnapshot(s=>{ALLOWED=docs(s);renderAllowed()},onErr)}
+  if(me.canEdit){$("#adminLink").hidden=false;db.collection("allowed").onSnapshot(s=>{ALLOWED=docs(s);renderAllowed()},onErr)}
 }
 function startApp(){
   if(started)return;started=true;
@@ -550,7 +550,7 @@ function boot(){
     me={id:u.uid,name:u.displayName||u.email||"",email:(u.email||"").toLowerCase(),canEdit:false};
     const domOk=DOMINIOS.indexOf((me.email.split("@")[1]||""))>=0;
     let a=null;try{a=await db.doc("allowed/"+me.email).get()}catch(e){}
-    canWrite=domOk||!!(a&&a.exists);me.canEdit=!!(a&&a.exists&&a.data().admin);
+    canWrite=domOk||!!(a&&a.exists);me.canEdit=PANEL_ADMIN_EMAILS.includes(me.email);
     if(!canWrite){showDenied();return}
     if(!(u.displayName||"").trim()){showName();return}
     startApp();

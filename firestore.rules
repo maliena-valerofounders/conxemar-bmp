@@ -7,7 +7,7 @@ rules_version = '2';
 //  - "creado por" (campo by) siempre es el usuario que escribe y no se puede cambiar
 //  - solo el autor (o un administrador) borra lo suyo
 //  - "visitado" de cada persona es privado
-//  - solo los administradores cambian el catálogo y la lista de accesos
+//  - solo m.aliena@ e i.huertas@bmpiberica.com (fijos aquí) cambian el catálogo y la lista de accesos
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -24,10 +24,9 @@ service cloud.firestore {
       return signedIn()
         && (domainOk() || exists(/databases/$(database)/documents/allowed/$(myEmail())));
     }
+    // Administradores: solo estos dos correos (fijos en las reglas, no editables desde la app).
     function isAdmin() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/allowed/$(myEmail()))
-        && get(/databases/$(database)/documents/allowed/$(myEmail())).data.get('admin', false) == true;
+      return signedIn() && myEmail() in ['m.aliena@bmpiberica.com', 'i.huertas@bmpiberica.com'];
     }
     function createdByMe() {
       return request.resource.data.by == request.auth.uid;
