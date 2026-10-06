@@ -14,7 +14,7 @@
 /* Adaptador: el SDK modular de Firebase (necesario para usar una base Firestore con nombre) con la misma
    forma de uso que el SDK compat, para que el resto de la app no cambie. */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, updateProfile } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, memoryLocalCache, doc, collection, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const cfgOk = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf("PEGAR") !== 0;
@@ -46,7 +46,11 @@ if (cfgOk) {
     signInWithPopup: p => signInWithPopup(auth, p),
     signInWithRedirect: p => signInWithRedirect(auth, p),
     getRedirectResult: () => getRedirectResult(auth),
-    signOut: () => signOut(auth)
+    signOut: () => signOut(auth),
+    sendSignInLinkToEmail: (e, st) => sendSignInLinkToEmail(auth, e, st),
+    isSignInWithEmailLink: u => isSignInWithEmailLink(auth, u),
+    signInWithEmailLink: (e, u) => signInWithEmailLink(auth, e, u),
+    updateName: n => updateProfile(auth.currentUser, { displayName: n })
   };
 }
 window.firebase = {
@@ -359,6 +363,8 @@ const PROD_EMP={enr:"bmp",cor:"bmp",bat:"repro",ram:"campisa"};
 const SEG={A:"Competencia",B:"Prescriptor",C:"Distribuidor",D:"Cliente final"};
 /* Entran automáticamente las cuentas de estos dominios (las reglas de Firestore lo exigen igual). */
 const DOMINIOS=["bmpiberica.com","comercialgarmo.com"];
+/* Quien no tenga cuenta de Google de empresa entra con un enlace enviado a su correo. Solo para este dominio. */
+const DOMINIO_ENLACE="comercialgarmo.com";
 /* El catálogo (T), los productos, las listas y los textos del stand NO están en este archivo:
    se cargan desde la base de datos al iniciar sesión (config/catalog). */
 let PRODS=[],T=[],LLEVAR=[],PEND=[],KEYS=[],CATALOG=null;
@@ -383,8 +389,43 @@ function gate(html){const g=$("#gate");g.hidden=false;$("#gateBody").innerHTML=h
 function gateOff(){$("#gate").hidden=true}
 const GOOGLE_SVG='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.5z"/><path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.6l3.8-3z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3A12 12 0 0 0 1.8 7.1l3.8 3C6.5 6.8 9 4.8 12 4.8z"/></svg>';
 function showLogin(msg){
-  gate(`<h2>Conxemar 2026</h2><p class="lead">App del equipo de BMP Group y Garmo. Entra con tu cuenta de Google de empresa.</p>${msg?`<p class="err" role="alert">${esc(msg)}</p>`:""}<button class="btn p full" id="btnLogin">${GOOGLE_SVG} Entrar con Google</button><p class="hint" style="margin-top:12px">Solo cuentas @bmpiberica.com y @comercialgarmo.com, o personas autorizadas por Miguel.</p>`);
-  $("#btnLogin").onclick=login;
+  gate(`<h2>Conxemar 2026</h2><p class="lead">App del equipo de BMP Group y Garmo.</p>${msg?`<p class="err" role="alert">${esc(msg)}</p>`:""}<button class="btn p full" id="btnLogin">${GOOGLE_SVG} Entrar con Google</button><p class="hint" style="margin:8px 0 14px">Con tu cuenta de empresa de @bmpiberica.com o @comercialgarmo.com.</p>
+  <div style="border-top:1px solid var(--line);padding-top:14px"><label for="loginEmail" style="margin-top:0">¿Tu correo de Garmo no es de Google?</label><input id="loginEmail" type="email" inputmode="email" autocomplete="email" placeholder="nombre@${DOMINIO_ENLACE}"><div class="err" id="eLoginEmail" role="alert"></div><button class="btn full" id="btnLink" style="margin-top:8px">Enviarme un enlace de acceso</button><p class="hint">Te llega un enlace al correo. Al abrirlo entras sin contraseña.</p></div>`);
+  $("#btnLogin").onclick=login;$("#btnLink").onclick=sendLink;
+}
+async function sendLink(){
+  const em=$("#loginEmail").value.trim().toLowerCase(),err=$("#eLoginEmail");
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){err.textContent="Escribe tu correo completo, por ejemplo nombre@"+DOMINIO_ENLACE+".";return}
+  if(em.split("@")[1]!==DOMINIO_ENLACE){err.textContent="El acceso con enlace es solo para correos @"+DOMINIO_ENLACE+". Con otro correo, entra con Google.";return}
+  err.textContent="";$("#btnLink").disabled=true;
+  try{await auth.sendSignInLinkToEmail(em,{url:location.origin+"/",handleCodeInApp:true});pref.set("emailLink",em);showLinkSent(em)}
+  catch(e){$("#btnLink").disabled=false;err.textContent=e&&e.code==="auth/too-many-requests"?"Demasiados intentos. Espera unos minutos.":"No se pudo enviar el enlace. Comprueba la conexión e inténtalo de nuevo."}
+}
+function showLinkSent(em){
+  gate(`<h2>Revisa tu correo</h2><p class="lead">Hemos enviado un enlace de acceso a <b>${esc(em)}</b>.</p><p style="font-size:14px;margin:0 0 12px">Ábrelo en este mismo dispositivo. Si no lo ves, mira en la carpeta de spam. El enlace es de un solo uso y caduca.</p><div class="acts"><button class="btn p" id="btnResend">Reenviar</button><button class="btn" id="btnBack">Usar otro correo</button></div>`);
+  $("#btnBack").onclick=()=>showLogin();
+  $("#btnResend").onclick=async()=>{try{await auth.sendSignInLinkToEmail(em,{url:location.origin+"/",handleCodeInApp:true});toast("Enlace reenviado")}catch(e){toast("No se pudo reenviar. Espera un momento.")}};
+}
+/* El usuario abre el enlace del correo: completamos el acceso. Si lo abre en otro dispositivo, hay que volver a pedir el correo. */
+function askEmailForLink(){
+  return new Promise(res=>{
+    gate(`<h2>Confirma tu correo</h2><p class="lead">Para terminar de entrar, escribe el correo al que te llegó el enlace.</p><label for="confEmail" style="margin-top:0">Correo</label><input id="confEmail" type="email" inputmode="email" autocomplete="email" placeholder="nombre@${DOMINIO_ENLACE}"><div class="err" id="eConfEmail" role="alert"></div><button class="btn p full" id="btnConf" style="margin-top:10px">Entrar</button>`);
+    $("#btnConf").onclick=()=>{const v=$("#confEmail").value.trim().toLowerCase();if(!v){$("#eConfEmail").textContent="Escribe tu correo.";return}res(v)};
+  });
+}
+async function completeLink(){
+  let em=pref.get("emailLink","");if(!em)em=await askEmailForLink();
+  try{await auth.signInWithEmailLink(em,location.href);pref.set("emailLink","");try{history.replaceState({},"",location.pathname)}catch(e){}}
+  catch(e){try{history.replaceState({},"",location.pathname)}catch(_){}pref.set("emailLink","");linking=false;showLogin(e&&(e.code==="auth/invalid-action-code"||e.code==="auth/expired-action-code")?"Este enlace ya se usó o ha caducado. Pide uno nuevo.":"No se pudo completar el acceso. Pide un enlace nuevo.")}
+}
+function showName(){
+  gate(`<h2>¿Cómo te llamas?</h2><p class="lead">Tu nombre saldrá en los leads y notas que crees, para que el equipo sepa quién es quién.</p><label for="myName" style="margin-top:0">Nombre y apellido</label><input id="myName" autocomplete="name" placeholder="Ej. Marta Pérez"><div class="err" id="eMyName" role="alert"></div><button class="btn p full" id="btnName" style="margin-top:10px">Continuar</button>`);
+  $("#btnName").onclick=async()=>{
+    const n=$("#myName").value.trim().replace(/\s+/g," ");
+    if(n.length<3||n.indexOf(" ")<0){$("#eMyName").textContent="Escribe tu nombre y apellido para que te reconozcan.";return}
+    $("#btnName").disabled=true;
+    try{await auth.updateName(n);me.name=n;startApp()}catch(e){$("#btnName").disabled=false;$("#eMyName").textContent="No se pudo guardar. Inténtalo de nuevo."}
+  };
 }
 function showDenied(){
   gate(`<h2>Todavía no tienes acceso</h2><p class="lead">Has entrado como <b>${esc(me.email)}</b>. Solo pueden entrar cuentas de @bmpiberica.com o @comercialgarmo.com.</p><p style="font-size:14px;margin:0 0 12px">Cierra sesión y entra con tu cuenta de empresa. Si tu correo es de otro dominio, pide a Miguel que te autorice.</p><div class="acts"><button class="btn p" id="btnOut">Cerrar sesión</button><button class="btn" id="btnRetry">Ya me han autorizado</button></div>`);
@@ -405,7 +446,7 @@ async function login(){
 }
 
 /* ---------- identidad y permisos ---------- */
-let auth=null,db=null,started=false,adminSubscribed=false;
+let auth=null,db=null,started=false,adminSubscribed=false,linking=false;
 let me={id:null,name:"",email:"",canEdit:false};
 let canWrite=null;
 const NAMES={};
@@ -486,13 +527,16 @@ function boot(){
   firebase.initializeApp(FIREBASE_CONFIG);auth=firebase.auth();db=firebase.firestore();
   db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
   auth.getRedirectResult().catch(()=>{});
+  if(auth.isSignInWithEmailLink(location.href)){linking=true;completeLink()}
   auth.onAuthStateChanged(async u=>{
-    if(!u){started=false;showLogin();return}
+    if(!u){started=false;if(!linking)showLogin();return}
+    linking=false;
     me={id:u.uid,name:u.displayName||u.email||"",email:(u.email||"").toLowerCase(),canEdit:false};
     const domOk=DOMINIOS.indexOf((me.email.split("@")[1]||""))>=0;
     let a=null;try{a=await db.doc("allowed/"+me.email).get()}catch(e){}
     canWrite=domOk||!!(a&&a.exists);me.canEdit=!!(a&&a.exists&&a.data().admin);
     if(!canWrite){showDenied();return}
+    if(!(u.displayName||"").trim()){showName();return}
     startApp();
   });
 }
