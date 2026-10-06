@@ -42,6 +42,15 @@ python3 publicar_reglas.py
 ```
 Valida y publica **solo en la base `conxemar`**. No uses el editor de la consola de Firebase: su selector arranca en `(default)`.
 
+## Descarga de los datos (manual, después de la feria)
+Todo lo generado en la app vive en la base `conxemar`. El botón "Exportar" de Leads solo saca los leads (CSV). Para llevarse **todo**, un Propietario del proyecto ejecuta a mano:
+```bash
+gcloud auth login            # solo si la sesión ha caducado
+python3 exportar_datos.py    # crea la carpeta exportacion_AAAAMMDD_HHMM/
+```
+No se programa ni se lanza solo, y **solo lee**: no modifica ni borra nada. Genera, en CSV para Excel en español (`;`, UTF-8 con BOM): `leads.csv`, `notas.csv`, `expositores_anadidos.csv`, `visitas_por_usuario.csv`, `usuarios.csv`, `fotos.csv`, la carpeta `fotos/` con los JPG, `datos_completos.json` (copia completa sin las imágenes) y `LEEME_exportacion.txt` con los totales.
+La carpeta contiene datos personales de contactos: guárdala donde corresponda y no la subas al repositorio (`exportacion_*/` está en `.gitignore`).
+
 ## Catálogo (privado)
 Los expositores, los productos y los textos del stand NO están en el repositorio ni en la web: viven en Firestore (`config/catalog`) y solo los ven las personas autorizadas. El archivo `catalogo.json` está en `.gitignore`. Un administrador lo carga desde la app (pestaña Stand > Equipo y catálogo).
 
