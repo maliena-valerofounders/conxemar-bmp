@@ -340,6 +340,7 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
 </div>
 
 <div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Foto"><img id="vimg" alt="Foto"><div class="cap" id="vcap"></div><div class="vb"><button class="btn" onclick="closeViewer()">Cerrar</button><button class="btn" onclick="photoSave()">Descargar</button><button class="btn" id="vdel" onclick="photoDelete()" style="color:#f87171">Borrar</button></div></div>
+<input type="file" id="photoInput" accept="image/*" multiple tabindex="-1" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0">
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -562,7 +563,8 @@ function chkItem(key,txt){const on=!!chkS[key];return `<li class="${on?"done":""
 document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.c;if(!k)return;chkS[k]=e.target.checked;e.target.closest("li").classList.toggle("done",e.target.checked);pref.set("chk",chkS)});
 
 /* ---------- expositores ---------- */
-let seg="all",flt=new Set(),expd=new Set(),openN=new Set(),noteDraft={},noteEdit=null;
+let seg="all",flt=new Set(),expd=new Set(),openN=new Set(),oldNotes=new Set(),noteDraft={},noteEdit=null;
+const NOTAS_VISIBLES=2; /* con más notas que esto, solo se ve la última y el resto se despliega */
 function ownerOf(g){return g===true?"Garmo":g===false?"BMP Group":"Decidir"}
 function allPlayers(){return [...T.map((r,i)=>({r,key:KEYS[i]})),...EXPO.map(c=>({r:[c.seg,c.name,c.stand,c.town,c.gal,c.desc,c.acc,0],key:"c_"+c.id,custom:c}))]}
 function notesOf(key){return NOTES.filter(n=>n.key===key).sort((a,b)=>(a.ts||"").localeCompare(b.ts||""))}
@@ -579,7 +581,9 @@ function noteHtml(n){
 function notesPanel(key){
   const ns=notesOf(key),ph=photosOf(key),ed=noteEdit&&noteEdit.key===key;
   ph.forEach(p=>ensurePhoto(p.id));
-  return `<div class="npanel">${ns.map(noteHtml).join("")}
+  const plegar=ns.length>NOTAS_VISIBLES&&!oldNotes.has(key),vis=plegar?ns.slice(-1):ns,ocultas=ns.length-vis.length;
+  const toggle=ns.length>NOTAS_VISIBLES?`<button class="link" onclick="toggleOldNotes('${key}')" aria-expanded="${!plegar}">${plegar?"Ver "+ocultas+" nota"+(ocultas>1?"s":"")+" anterior"+(ocultas>1?"es":""):"Ocultar notas anteriores"}</button>`:"";
+  return `<div class="npanel">${toggle}${vis.map(noteHtml).join("")}
   <label style="margin-top:6px" for="nn_${key}">${ed?"Editar nota":"Nueva nota"}</label><textarea id="nn_${key}" placeholder="Qué dijeron, qué puertas tienen, con quién hablaste..." oninput="noteDraft['${key}']=this.value">${esc(noteDraft[key]||"")}</textarea>
   <div class="acts"><button class="btn s p" onclick="saveNote('${key}')">${ed?"Guardar cambios":"Añadir nota"}</button>${ed?`<button class="btn s" onclick="cancelEditNote()">Cancelar</button>`:""}<button class="btn s" onclick="pickPhoto('${key}')">+ Foto</button></div>
   ${ph.length?`<div class="thumbs">${ph.map(p=>PD[p.id]?`<img src="${PD[p.id]}" alt="Foto de ${esc(nameOfKey(key))}" onclick="openViewer('${p.id}')">`:`<div class="ph" aria-label="Cargando foto"></div>`).join("")}</div>`:""}</div>`;
@@ -611,6 +615,7 @@ function renderT(){
     $("#tList").innerHTML=rows.length?rows.map(({r,key,custom})=>cardHtml(r,key,custom)).join(""):`<div class="card"><p class="mut" style="margin:0">${all.length?"Ningún expositor coincide con los filtros.":"Todavía no hay expositores."}</p><div class="acts">${all.length?`<button class="btn s" onclick="clearFilters()">Limpiar filtros</button>`:""}<button class="btn s" onclick="openPlayer()">+ Añadir expositor</button></div></div>`;
   });
 }
+function toggleOldNotes(k){oldNotes.has(k)?oldNotes.delete(k):oldNotes.add(k);renderT()}
 function toggleDesc(k){expd.has(k)?expd.delete(k):expd.add(k);renderT()}
 function toggleNotes(k){openN.has(k)?openN.delete(k):openN.add(k);if(noteEdit&&noteEdit.key===k&&!openN.has(k)){noteEdit=null}renderT()}
 $("#segChips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;seg=b.dataset.s;syncChips();renderT()});
@@ -669,10 +674,17 @@ async function shrink(file){
   }
   return null;
 }
+let photoKey=null;
 function pickPhoto(key){
   if(!guardWrite())return;
-  const i=document.createElement("input");i.type="file";i.accept="image/*";i.multiple=true;i.onchange=()=>addPhotos(key,[...i.files]);i.click();
+  photoKey=key;const i=$("#photoInput");i.value="";i.click();
 }
+$("#photoInput").addEventListener("change",e=>{
+  const i=e.target,fs=[...(i.files||[])],k=photoKey;i.value="";
+  if(!fs.length){toast("No se ha recibido ninguna foto. Inténtalo de nuevo.");return}
+  if(!k){toast("No se pudo saber a qué expositor va la foto. Ábrelo y pulsa + Foto otra vez.");return}
+  addPhotos(k,fs);
+});
 async function addPhotos(key,files){
   if(!files.length)return;toast(files.length===1?"Guardando foto...":"Guardando "+files.length+" fotos...");let n=0;
   for(const f of files){
@@ -680,9 +692,9 @@ async function addPhotos(key,files){
       const url=await shrink(f);if(!url){toast("Una foto es demasiado grande. Prueba con otra.");continue}
       const id=newId("f"),ts=nowIso();
       PD[id]=url;
-      Promise.all([db.doc("photodata/"+id).set({data:url,by:me.id}),db.doc("photoidx/"+id).set({key,by:me.id,ts})]).catch(e=>{explain(e);delete PD[id]});
+      Promise.all([db.doc("photodata/"+id).set({data:url,by:me.id}),db.doc("photoidx/"+id).set({key,by:me.id,ts})]).catch(e=>{fsProblem("subir foto",e);delete PD[id];sched()});
       n++;
-    }catch(e){toast("No se pudo preparar una foto. Prueba con otra.")}
+    }catch(e){toast("No se pudo preparar la foto ("+((e&&e.message)||"error")+"). Prueba con otra.")}
   }
   if(n){openN.add(key);toast(n===1?"Foto guardada":n+" fotos guardadas");sched()}
 }
