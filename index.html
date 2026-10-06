@@ -170,7 +170,7 @@ details[open] summary::after{content:"–"}
 @media (prefers-reduced-motion:reduce){.sheet,.toast{transition:none}}
 
 #gate{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
-#gate[hidden]{display:none}
+[hidden]{display:none!important}
 #gateBody{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:420px;width:100%}
 #gateBody .btn svg{flex:none}
 code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
@@ -670,7 +670,7 @@ function delNote(id){
 /* ---------- fotos compartidas ---------- */
 function ensurePhoto(id){
   if(PD[id]||pdLoading.has(id)||!db)return;pdLoading.add(id);
-  db.doc("photodata/"+id).get().then(s=>{if(s.exists)PD[id]=(s.data()||{}).data}).catch(()=>{}).finally(()=>{pdLoading.delete(id);sched()});
+  db.doc("photodata/"+id).get().then(s=>{if(s.exists)PD[id]=(s.data()||{}).data}).catch(()=>{}).finally(()=>{pdLoading.delete(id);setTimeout(sched,PD[id]?0:5000)});
 }
 function loadImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{URL.revokeObjectURL(u);res(i)};i.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("img"))};i.src=u})}
 async function shrink(file,max0){
@@ -720,8 +720,8 @@ async function addPhotos(key,files){
   if(n){openN.add(key);toast(n===1?"Foto guardada":n+" fotos guardadas");sched()}
 }
 let curPhoto=null;
-function openViewer(id){const p=PIDX.find(x=>x.id===id);if(!p||!PD[id])return;curPhoto=id;$("#vimg").src=PD[id];$("#vcap").textContent="Foto de "+nameOfKey(p.key)+" · creada por "+whoName(p.by)+" · "+fmtDate(p.ts);$("#vdel").hidden=!canDelete(p.by);$("#viewer").classList.add("on")}
-function closeViewer(){$("#viewer").classList.remove("on");curPhoto=null}
+function openViewer(id){const p=PIDX.find(x=>x.id===id);if(!p||!PD[id])return;curPhoto=id;$("#vimg").src=PD[id];$("#vcap").textContent="Foto de "+nameOfKey(p.key)+" · creada por "+whoName(p.by)+" · "+fmtDate(p.ts);$("#vdel").hidden=!canDelete(p.by);$("#viewer").classList.add("on");try{history.pushState({viewer:1},"")}catch(e){}}
+function closeViewer(fromPop){$("#viewer").classList.remove("on");curPhoto=null;if(!fromPop&&history.state&&history.state.viewer)try{history.back()}catch(e){}}
 function dataToBlob(u){const b=atob(u.split(",")[1]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Blob([a],{type:"image/jpeg"})}
 async function photoSave(){
   const id=curPhoto,p=PIDX.find(x=>x.id===id);if(!p||!PD[id])return;
@@ -752,7 +752,7 @@ function closeSheets(fromPop){
   if(!fromPop){try{if(history.state&&history.state.sheet)history.back()}catch(e){}}
   if(lastFocus&&lastFocus.focus)try{lastFocus.focus()}catch(e){}
 }
-addEventListener("popstate",()=>{closeSheets(true);closeViewer()});
+addEventListener("popstate",e=>{closeViewer(true);if(!(e.state&&e.state.sheet))closeSheets(true)});
 addEventListener("keydown",e=>{if(e.key==="Escape"){if($("#viewer").classList.contains("on"))closeViewer();else if(document.querySelector(".sheet.on"))closeSheets()}});
 
 /* Arrastrar la hoja hacia abajo la cierra. Se bloquea el gesto del navegador de "tirar para recargar" mientras dura. */
