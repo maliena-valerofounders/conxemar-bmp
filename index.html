@@ -24,8 +24,8 @@ if (cfgOk) {
   const app = initializeApp(webCfg);
   const auth = getAuth(app);
   let raw;
-  try { raw = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }, databaseId || "(default)"); }
-  catch (e) { raw = initializeFirestore(app, { localCache: memoryLocalCache() }, databaseId || "(default)"); }
+  try { raw = initializeFirestore(app, { experimentalForceLongPolling: true, localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }, databaseId || "(default)"); }
+  catch (e) { raw = initializeFirestore(app, { experimentalForceLongPolling: true, localCache: memoryLocalCache() }, databaseId || "(default)"); }
   const snap = s => ({ id: s.id, exists: s.exists(), data: () => s.data(), metadata: s.metadata });
   const wrapDoc = ref => ({
     id: ref.id, path: ref.path,
@@ -187,6 +187,7 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
 
   <main id="main">
     <div class="alert" id="noCatalog" hidden role="alert"></div>
+    <div class="alert" id="bFs" hidden role="alert"></div>
 
     <!-- EXPOSITORES -->
     <section class="view on" id="v-obj">
@@ -500,12 +501,18 @@ function applyCatalog(d){
   $("#catStatus").textContent="Catálogo cargado: "+T.length+" expositores"+(d.generado?" (fecha "+d.generado+")":"")+".";
   sched();
 }
+function fsProblem(donde,e){
+  const cod=(e&&(e.code||e.message))||"desconocido";console.error("Firestore",donde,e);
+  const b=$("#bFs");b.hidden=false;
+  b.innerHTML="<b>Problema con la base de datos.</b> "+(String(cod).indexOf("permission")>=0?"Tu cuenta no tiene permiso para leer esto.":"No se pudo cargar o guardar.")+" <span class='mut'>("+esc(donde)+": "+esc(cod)+")</span><br><button class='btn s' style='margin-top:8px' onclick='location.reload()'>Recargar</button>";
+}
 function subscribe(){
-  const onErr=e=>{if(e&&e.code==="permission-denied"){toast("Se perdió el permiso de acceso. Recarga la página.")}};
+  const onErr=e=>{fsProblem("lectura",e)};
   const meta=s=>{pendingWrites=!!(s.metadata&&s.metadata.hasPendingWrites);setSync()};
+  setTimeout(()=>{if(!CATALOG&&$("#bFs").hidden&&$("#noCatalog").hidden)fsProblem("catálogo","sin respuesta en 10 s")},10000);
   db.doc("config/catalog").onSnapshot(s=>{
-    if(s.exists)applyCatalog(s.data());
-    else{CATALOG=null;T=[];KEYS=[];$("#noCatalog").hidden=false;$("#noCatalog").innerHTML=me.canEdit?"<b>Falta cargar el catálogo.</b> Ve a la pestaña Stand, sección «Equipo y catálogo», y elige el archivo catalogo.json.":"<b>El catálogo aún no está cargado.</b> Avisa a Miguel.";sched()}
+    if(s.exists){$("#bFs").hidden=true;applyCatalog(s.data())}
+    else if(!(s.metadata&&s.metadata.fromCache)){CATALOG=null;T=[];KEYS=[];$("#noCatalog").hidden=false;$("#noCatalog").innerHTML=me.canEdit?"<b>Falta cargar el catálogo.</b> Ve a la pestaña Stand, sección «Equipo y catálogo», y elige el archivo catalogo.json.":"<b>El catálogo aún no está cargado.</b> Avisa a Miguel.";sched()}
   },onErr);
   db.collection("leads").onSnapshot(s=>{LEADS=docs(s);needNames(LEADS.flatMap(l=>[l.by,l.updBy]));meta(s);sched()},onErr);
   db.collection("notes").onSnapshot(s=>{NOTES=docs(s);needNames(NOTES.flatMap(n=>[n.by,n.updBy]));meta(s);sched()},onErr);
@@ -517,7 +524,7 @@ function subscribe(){
 function startApp(){
   if(started)return;started=true;
   gateOff();$("#phase").textContent=phaseLabel();setSync();
-  db.doc("users/"+me.id).set({name:me.name,email:me.email,upd:nowIso()},{merge:true}).catch(()=>{});
+  db.doc("users/"+me.id).set({name:me.name,email:me.email,upd:nowIso()},{merge:true}).catch(e=>fsProblem("guardar ficha",e));
   subscribe();go(pref.get("tab","obj"));
 }
 function boot(){
