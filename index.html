@@ -10,9 +10,53 @@
 <meta name="apple-mobile-web-app-title" content="Conxemar">
 <link rel="manifest" href="manifest.webmanifest">
 <title>Conxemar BMP Group</title>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script type="module">
+/* Adaptador: el SDK modular de Firebase (necesario para usar una base Firestore con nombre) con la misma
+   forma de uso que el SDK compat, para que el resto de la app no cambie. */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, memoryLocalCache, doc, collection, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const cfgOk = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf("PEGAR") !== 0;
+let authObj = null, db = null;
+if (cfgOk) {
+  const { databaseId, ...webCfg } = FIREBASE_CONFIG;
+  const app = initializeApp(webCfg);
+  const auth = getAuth(app);
+  let raw;
+  try { raw = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }, databaseId || "(default)"); }
+  catch (e) { raw = initializeFirestore(app, { localCache: memoryLocalCache() }, databaseId || "(default)"); }
+  const snap = s => ({ id: s.id, exists: s.exists(), data: () => s.data(), metadata: s.metadata });
+  const wrapDoc = ref => ({
+    id: ref.id, path: ref.path,
+    get: () => getDoc(ref).then(snap),
+    set: (d, o) => setDoc(ref, d, o || {}),
+    update: d => updateDoc(ref, d),
+    delete: () => deleteDoc(ref),
+    onSnapshot: (n, e) => onSnapshot(ref, s => n(snap(s)), e)
+  });
+  const wrapCol = ref => ({
+    path: ref.path,
+    doc: id => wrapDoc(id ? doc(ref, id) : doc(ref)),
+    onSnapshot: (n, e) => onSnapshot(ref, s => n({ docs: s.docs.map(snap), size: s.size, metadata: s.metadata }), e)
+  });
+  db = { doc: p => wrapDoc(doc(raw, p)), collection: p => wrapCol(collection(raw, p)), enablePersistence: () => Promise.resolve() };
+  authObj = {
+    onAuthStateChanged: cb => onAuthStateChanged(auth, cb),
+    signInWithPopup: p => signInWithPopup(auth, p),
+    signInWithRedirect: p => signInWithRedirect(auth, p),
+    getRedirectResult: () => getRedirectResult(auth),
+    signOut: () => signOut(auth)
+  };
+}
+window.firebase = {
+  __ready: true,
+  initializeApp: () => {},
+  auth: Object.assign(() => authObj, { GoogleAuthProvider }),
+  firestore: () => db
+};
+dispatchEvent(new Event("fbready"));
+</script>
 <style>
 /* Diseño: app móvil de una pantalla. Cabecera oscura, tres pestañas inferiores, botón flotante de lead, hojas desde abajo. */
 :root{--bg:#f3f5f3;--card:#ffffff;--ink:#13201a;--muted:#5d6b63;--line:#dde3df;--brand:#0a1f14;--brand-ink:#ffffff;--brand-mute:#b9c7bf;--accent:#168a5c;--accent-ink:#ffffff;--warn:#b45309;--warnbg:#fff3de;--A:#b91c1c;--B:#7c3aed;--C:#0369a1;--D:#047857;--danger:#b91c1c;--toast-bg:#13201a;--toast-ink:#f3f5f3;--toast-act:#4ade80}
@@ -202,7 +246,8 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
 
       
       <details id="adminBox" hidden><summary>Equipo y catálogo (administración)</summary><div class="in">
-        <h3>Personas con acceso</h3>
+        <h3>Administradores y excepciones</h3>
+        <p class="mut" style="margin:0 0 8px">Entran solos todos los correos @bmpiberica.com y @comercialgarmo.com. Aquí solo hace falta añadir a alguien de otro dominio, o marcar quién es administrador.</p>
         <form id="af" onsubmit="return addAllowed(event)" novalidate>
           <label for="aEmail" style="margin-top:0">Correo de Google</label><input id="aEmail" type="email" inputmode="email" placeholder="nombre@gmail.com" autocomplete="off">
           <div class="err" id="eAEmail" role="alert"></div>
@@ -297,10 +342,11 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
 <script>
 /* ---------- configuración de Firebase (se rellena una vez, ver LEEME.md) ---------- */
 const FIREBASE_CONFIG = {
-  apiKey: "PEGAR_AQUI",
-  authDomain: "PEGAR_AQUI",
-  projectId: "PEGAR_AQUI",
-  appId: "PEGAR_AQUI"
+  apiKey: "AIzaSyBe8qmN_cuinEzEiRddlGaK5xICRW3Dz5w",
+  authDomain: "bmp-iberica.firebaseapp.com",
+  projectId: "bmp-iberica",
+  appId: "1:643465692981:web:da5095aac9a6c0fb536e7c",
+  databaseId: "conxemar"   // base Firestore con nombre, dentro de bmp-iberica (igual que las del CRM)
 };
 
 /* ---------- datos fijos ---------- */
@@ -311,6 +357,8 @@ const OWN=[["garmo","Garmo"],["group","BMP Group"]];
 const EMP=[["bmp","BMP Ibérica"],["repro","Grupo Repro"],["campisa","Campisa Ibérica"]];
 const PROD_EMP={enr:"bmp",cor:"bmp",bat:"repro",ram:"campisa"};
 const SEG={A:"Competencia",B:"Prescriptor",C:"Distribuidor",D:"Cliente final"};
+/* Entran automáticamente las cuentas de estos dominios (las reglas de Firestore lo exigen igual). */
+const DOMINIOS=["bmpiberica.com","comercialgarmo.com"];
 /* El catálogo (T), los productos, las listas y los textos del stand NO están en este archivo:
    se cargan desde la base de datos al iniciar sesión (config/catalog). */
 let PRODS=[],T=[],LLEVAR=[],PEND=[],KEYS=[],CATALOG=null;
@@ -335,11 +383,11 @@ function gate(html){const g=$("#gate");g.hidden=false;$("#gateBody").innerHTML=h
 function gateOff(){$("#gate").hidden=true}
 const GOOGLE_SVG='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.5z"/><path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.6l3.8-3z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3A12 12 0 0 0 1.8 7.1l3.8 3C6.5 6.8 9 4.8 12 4.8z"/></svg>';
 function showLogin(msg){
-  gate(`<h2>Conxemar 2026</h2><p class="lead">App del equipo de BMP Group y Garmo. Entra con tu cuenta de Google.</p>${msg?`<p class="err" role="alert">${esc(msg)}</p>`:""}<button class="btn p full" id="btnLogin">${GOOGLE_SVG} Entrar con Google</button><p class="hint" style="margin-top:12px">Solo pueden entrar las personas autorizadas por Miguel.</p>`);
+  gate(`<h2>Conxemar 2026</h2><p class="lead">App del equipo de BMP Group y Garmo. Entra con tu cuenta de Google de empresa.</p>${msg?`<p class="err" role="alert">${esc(msg)}</p>`:""}<button class="btn p full" id="btnLogin">${GOOGLE_SVG} Entrar con Google</button><p class="hint" style="margin-top:12px">Solo cuentas @bmpiberica.com y @comercialgarmo.com, o personas autorizadas por Miguel.</p>`);
   $("#btnLogin").onclick=login;
 }
 function showDenied(){
-  gate(`<h2>Todavía no tienes acceso</h2><p class="lead">Has entrado como <b>${esc(me.email)}</b>, pero esta cuenta no está en la lista del equipo.</p><p style="font-size:14px;margin:0 0 12px">Pide a Miguel que añada este correo (en minúsculas) y vuelve a entrar.</p><div class="acts"><button class="btn p" id="btnRetry">Ya me han añadido</button><button class="btn" id="btnOut">Cerrar sesión</button></div>`);
+  gate(`<h2>Todavía no tienes acceso</h2><p class="lead">Has entrado como <b>${esc(me.email)}</b>. Solo pueden entrar cuentas de @bmpiberica.com o @comercialgarmo.com.</p><p style="font-size:14px;margin:0 0 12px">Cierra sesión y entra con tu cuenta de empresa. Si tu correo es de otro dominio, pide a Miguel que te autorice.</p><div class="acts"><button class="btn p" id="btnOut">Cerrar sesión</button><button class="btn" id="btnRetry">Ya me han autorizado</button></div>`);
   $("#btnOut").onclick=()=>auth.signOut();$("#btnRetry").onclick=()=>location.reload();
 }
 function showSetup(){
@@ -400,7 +448,7 @@ function setSync(){
 }
 addEventListener("online",setSync);addEventListener("offline",setSync);
 function applyCatalog(d){
-  CATALOG=d;PRODS=d.prods||[];T=d.T||[];LLEVAR=d.llevar||[];PEND=d.pend||[];
+  CATALOG=d;PRODS=d.prods||[];T=d.T||(d.Tjson?JSON.parse(d.Tjson):[]);LLEVAR=d.llevar||[];PEND=d.pend||[];
   KEYS=T.map(r=>slug(r[1])+"_"+slug(r[2]));
   if(new Set(KEYS).size!==KEYS.length)console.warn("Claves de expositor duplicadas");
   $("#prods").innerHTML=PRODS.map(p=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)"><h3>${esc(p.n)}</h3><div class="mut">${esc(p.e)}</div><p style="font-size:14px;margin:6px 0 0"><b>Para abrir:</b> ${esc(p.q)}</p><p style="font-size:14px;margin:4px 0 0"><b>Argumento:</b> ${esc(p.a)}</p></div>`).join("")+`<p class="mut" style="margin-top:8px">Argumentos orientativos: contrastarlos con la ficha técnica de cada producto antes de prometer cifras.</p>`;
@@ -441,7 +489,9 @@ function boot(){
   auth.onAuthStateChanged(async u=>{
     if(!u){started=false;showLogin();return}
     me={id:u.uid,name:u.displayName||u.email||"",email:(u.email||"").toLowerCase(),canEdit:false};
-    try{const a=await db.doc("allowed/"+me.email).get();canWrite=a.exists;me.canEdit=!!(a.exists&&a.data().admin)}catch(e){canWrite=false}
+    const domOk=DOMINIOS.indexOf((me.email.split("@")[1]||""))>=0;
+    let a=null;try{a=await db.doc("allowed/"+me.email).get()}catch(e){}
+    canWrite=domOk||!!(a&&a.exists);me.canEdit=!!(a&&a.exists&&a.data().admin);
     if(!canWrite){showDenied();return}
     startApp();
   });
@@ -785,7 +835,8 @@ function importCatalog(file){
   r.onload=()=>{
     let d;try{d=JSON.parse(r.result)}catch(e){toast("El archivo no es un JSON válido.");return}
     if(!d||!Array.isArray(d.T)||!Array.isArray(d.prods)){toast("Este archivo no parece ser catalogo.json: faltan los expositores o los productos.");return}
-    run(()=>db.doc("config/catalog").set(d),"Catálogo cargado: "+d.T.length+" expositores");
+    const out=Object.assign({},d,{Tjson:JSON.stringify(d.T)});delete out.T;
+    run(()=>db.doc("config/catalog").set(out),"Catálogo cargado: "+d.T.length+" expositores");
   };
   r.onerror=()=>toast("No se pudo leer el archivo.");r.readAsText(file);
 }
@@ -795,7 +846,8 @@ function renderAll(){renderT();renderLeads()}
 $("#phase").textContent=phaseLabel();
 renderAll();
 if("serviceWorker" in navigator){try{navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}}
-boot();
+if (window.firebase && window.firebase.__ready) boot(); else addEventListener("fbready", boot, { once: true });
+setTimeout(() => { if (!(window.firebase && window.firebase.__ready)) gate('<h2>No se pudo cargar</h2><p class="lead">Falta conexión para descargar la aplicación. Comprueba la red y recarga.</p><button class="btn p full" onclick="location.reload()">Recargar</button>'); }, 12000);
 </script>
 </body>
 </html>

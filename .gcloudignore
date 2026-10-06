@@ -1,0 +1,8 @@
+# Lo que NO se sube a Cloud Build
+catalogo.json
+firestore.rules
+README.md
+LEEME.md
+.git
+.gitignore
+node_modules

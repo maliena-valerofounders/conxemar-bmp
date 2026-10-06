@@ -1,78 +1,49 @@
-# Conxemar BMP Group: puesta en marcha (GitHub Pages + Firebase)
+# Conxemar BMP Group: app del equipo
 
-La app es una web estática (GitHub Pages) que guarda los datos en Firestore (Google Cloud) y deja entrar solo a las personas autorizadas, con su cuenta de Google. Sirve igual para el equipo de BMP Group y para el de Garmo.
+Misma arquitectura que el CRM, todo dentro del proyecto de Google Cloud **`bmp-iberica`**:
 
-## Qué hay en esta carpeta
+| Parte | Dónde |
+|---|---|
+| Web | Cloud Run, servicio `conxemar-app`, `europe-west1` (nginx con `index.html`) |
+| Datos | Firestore, base **`conxemar`** (`europe-southwest1`), con protección contra borrado |
+| Inicio de sesión | Firebase Authentication con Google, en el mismo proyecto |
+| Código | GitHub, repositorio `conxemar-bmp` |
 
-| Archivo | Para qué | ¿Se sube a GitHub? |
-|---|---|---|
-| `index.html` | La app | Sí |
-| `manifest.webmanifest`, `sw.js` | Instalar en pantalla de inicio y abrir sin conexión | Sí |
-| `firestore.rules` | Reglas de seguridad de la base de datos | Sí (o solo se pegan en Firebase) |
-| `catalogo.json` | Expositores, productos y textos del stand (estrategia comercial) | **No.** Está en `.gitignore`. Se carga desde la app |
+Dirección: https://conxemar-app-643465692981.europe-west1.run.app
 
-La web de GitHub Pages es pública. Por eso `index.html` no lleva ningún dato comercial: todo se descarga de la base de datos después de iniciar sesión.
+A diferencia del CRM, aquí el navegador habla directamente con Firestore y la seguridad la ponen las **reglas** (`firestore.rules`), no un servidor.
 
-## Pasos (unos 30 minutos)
+## Quién entra
+Cualquier cuenta de Google con correo **@bmpiberica.com** o **@comercialgarmo.com**, con el correo verificado. La colección `allowed` solo sirve para excepciones de otros dominios (documento con el correo en minúsculas) y para marcar administradores (`admin: true`).
 
-### 1. Crear el proyecto de Firebase
-1. Entra en https://console.firebase.google.com con la cuenta de BMP.
-2. **Añadir proyecto** y ponle nombre, por ejemplo `bmp-conxemar-2026`. Desactiva Google Analytics.
-3. Recomendado: proyecto **nuevo**, no el `bmp-iberica` del CRM. Las reglas de Firestore se aplican a toda la base y no hay que arriesgarse a tocar el CRM.
-
-### 2. Activar el inicio de sesión con Google
-1. **Build > Authentication > Comenzar > Google > Activar**. Elige el correo de soporte y guarda.
-2. **Authentication > Settings > Authorized domains > Add domain**: añade `TU-USUARIO.github.io` (el dominio donde publicarás).
-
-### 3. Crear la base de datos
-1. **Build > Firestore Database > Crear base de datos**.
-2. Región **europe-west** (UE, por los datos personales de los contactos). No se puede cambiar después.
-3. Modo **producción**.
-
-### 4. Publicar las reglas de seguridad
-1. En Firestore, pestaña **Reglas**: pega el contenido de `firestore.rules` y pulsa **Publicar**.
-2. Si usas la CLI (`npm i -g firebase-tools`, `firebase login`, `firebase deploy --only firestore:rules`), también vale.
-
-### 5. Crear el primer administrador
-Sin esto nadie puede entrar. En Firestore, pestaña **Datos**:
-1. **Iniciar colección** con ID `allowed`.
-2. ID del documento: **tu correo de Google, entero en minúsculas** (por ejemplo `m.aliena@bmpiberica.com`).
-3. Campo `admin`, tipo booleano, valor `true`.
-
-### 6. Copiar la configuración web
-1. **Configuración del proyecto > Tus apps > Web (`</>`)**, registra una app y copia el bloque `firebaseConfig`.
-2. En `index.html`, sustituye los `PEGAR_AQUI` de `FIREBASE_CONFIG` por `apiKey`, `authDomain`, `projectId` y `appId`.
-3. Esas claves son públicas por diseño. La seguridad la dan las reglas del paso 4.
-
-### 7. Publicar en GitHub Pages
-1. Crea un repositorio (por ejemplo `conxemar-bmp`) y sube `index.html`, `manifest.webmanifest`, `sw.js`, `firestore.rules` y `.gitignore`. **No subas `catalogo.json`.**
-2. **Settings > Pages > Deploy from a branch > main / (root)**.
-3. La dirección será `https://TU-USUARIO.github.io/conxemar-bmp/`. Debe coincidir con el dominio autorizado en el paso 2.
-
-### 8. Primer arranque
-1. Abre la dirección, pulsa **Entrar con Google** con tu cuenta.
-2. Ve a **Stand > Equipo y catálogo**. Elige `catalogo.json` para cargar los 67 expositores y los textos.
-3. En la misma sección, **añade los correos del equipo de BMP y de Garmo** (cuentas de Google, en minúsculas). Marca "Administrador" solo para quien deba gestionar accesos o borrar lo de otros.
-4. Cada persona abre la dirección, entra con Google y, en el móvil, **Añadir a pantalla de inicio**.
-
-## Qué garantizan las reglas (en el servidor)
-- Solo entran correos que estén en `allowed`.
-- "Creado por" siempre es quien escribe y no se puede cambiar.
-- Solo el autor (o un administrador) borra sus leads, notas, fotos y expositores. Las notas solo las edita su autor.
-- "Visitado" de cada persona es privado: nadie más lo puede leer.
+## Qué garantizan las reglas (probadas con 25 casos en el simulador de Firebase)
+- "Creado por" (`by`) siempre es quien escribe y no se puede cambiar.
+- Solo el autor, o un administrador, borra lo suyo. Las notas solo las edita su autor.
+- "Visitado" de cada persona es privado (`users/{uid}/private/visits`).
 - Solo los administradores cambian el catálogo y la lista de accesos.
+- Todo lo que no está listado, cerrado.
 
-## Comprobación antes de la feria
-1. Con tu cuenta: crea un lead y una nota. Deben aparecer con tu nombre.
-2. Con una cuenta de prueba **no** añadida a `allowed`: debe salir "Todavía no tienes acceso".
-3. Añade esa cuenta como miembro: debe ver el lead, no poder borrarlo, y su "visitado" no debe afectarte.
-4. Pon el móvil en modo avión, crea un lead, vuelve a conectar: debe sincronizarse.
+## Desplegar la web
+```bash
+gcloud run deploy conxemar-app --source . --project bmp-iberica --region europe-west1 \
+  --max-instances 3 --min-instances 0 --memory 256Mi --cpu 1 --no-invoker-iam-check --quiet
+```
+`--no-invoker-iam-check` es lo mismo que usa `crm-leads` para ser público. La política de la organización no permite dar `allUsers` como invocador. La app se protege con su propio inicio de sesión.
 
-## Lo que hay que saber
-- **Sin conexión:** la app y los datos se guardan en el móvil. Los cambios se envían solos al volver la red. La primera vez hay que abrirla con conexión.
-- **Coste:** el plan gratuito de Firebase (Spark) cubre de sobra un equipo pequeño durante una feria. Revisa las cuotas si se suben muchas fotos.
-- **Fotos:** se guardan reducidas (unos 60 a 100 KB cada una) dentro de la base de datos, visibles para todo el equipo.
-- **Cuentas:** todo el mundo necesita una cuenta de Google (Gmail o de empresa).
-- **Protección de datos:** hay datos personales de contactos. La base está en la UE y el acceso está limitado a las personas autorizadas. Conviene dejar constancia de quién tiene acceso y borrar los datos cuando deje de hacer falta.
-- **Actualizar la app:** edita `index.html` y súbelo. El service worker toma la versión nueva en la siguiente apertura con conexión.
-- **Marcha atrás:** en Firebase, quitar el correo de `allowed` corta el acceso de esa persona al instante.
+Si la dirección cambia, hay que autorizarla en Firebase: Authentication > Configuración > Dominios autorizados.
+
+## Publicar las reglas
+```bash
+python3 publicar_reglas.py
+```
+Valida y publica **solo en la base `conxemar`**. No uses el editor de la consola de Firebase: su selector arranca en `(default)`.
+
+## Catálogo (privado)
+Los expositores, los productos y los textos del stand NO están en el repositorio ni en la web: viven en Firestore (`config/catalog`) y solo los ven las personas autorizadas. El archivo `catalogo.json` está en `.gitignore`. Un administrador lo carga desde la app (pestaña Stand > Equipo y catálogo).
+
+Firestore no admite arrays dentro de arrays: la lista de expositores se guarda como texto (`Tjson`).
+
+## Pendiente
+- Despliegue automático desde GitHub (como `desplegar.yml` del CRM). La federación de identidad del CRM solo acepta repositorios de `ivanhuertasg`: hay que mover este repositorio a su cuenta o ampliar la condición.
+- El proyecto `bmp-conxemar-2026` (Firebase) quedó sin uso tras pasar todo a `bmp-iberica`. Decidir si se borra.
+- Copia de seguridad programada de la base `conxemar` (las del CRM la tienen diaria).

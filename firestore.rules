@@ -2,7 +2,8 @@ rules_version = '2';
 
 // Conxemar BMP Group: reglas de seguridad de Firestore.
 // Lo que garantizan, aunque alguien manipule el código de la web:
-//  - solo entran personas cuyo email esté en la colección "allowed"
+//  - solo entran cuentas con correo @bmpiberica.com o @comercialgarmo.com
+//    (o personas añadidas a mano en la colección "allowed")
 //  - "creado por" (campo by) siempre es el usuario que escribe y no se puede cambiar
 //  - solo el autor (o un administrador) borra lo suyo
 //  - "visitado" de cada persona es privado
@@ -16,11 +17,16 @@ service cloud.firestore {
     function myEmail() {
       return request.auth.token.email.lower();
     }
+    function domainOk() {
+      return myEmail().split('@')[1] in ['bmpiberica.com', 'comercialgarmo.com'];
+    }
     function isAllowed() {
-      return signedIn() && exists(/databases/$(database)/documents/allowed/$(myEmail()));
+      return signedIn()
+        && (domainOk() || exists(/databases/$(database)/documents/allowed/$(myEmail())));
     }
     function isAdmin() {
-      return isAllowed()
+      return signedIn()
+        && exists(/databases/$(database)/documents/allowed/$(myEmail()))
         && get(/databases/$(database)/documents/allowed/$(myEmail())).data.get('admin', false) == true;
     }
     function createdByMe() {
@@ -33,7 +39,7 @@ service cloud.firestore {
       return resource.data.by == request.auth.uid;
     }
 
-    // Lista de accesos. Cada persona solo puede leer su propia ficha (para saber si entra).
+    // Excepciones y administradores. Cada persona solo puede leer su propia ficha.
     match /allowed/{email} {
       allow get: if signedIn() && myEmail() == email;
       allow get, list, create, update, delete: if isAdmin();

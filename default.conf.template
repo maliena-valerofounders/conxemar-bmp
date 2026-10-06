@@ -1,0 +1,17 @@
+server {
+    listen ${PORT};
+    root /usr/share/nginx/html;
+    index index.html;
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    # La app y el service worker no se cachean: una versión nueva se recoge al abrir con conexión.
+    location = /index.html { add_header Cache-Control "no-cache"; }
+    location = /sw.js { add_header Cache-Control "no-cache"; }
+    location = /manifest.webmanifest { add_header Content-Type "application/manifest+json"; add_header Cache-Control "no-cache"; }
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / { try_files $uri /index.html; }
+}
