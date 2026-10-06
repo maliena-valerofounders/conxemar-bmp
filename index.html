@@ -224,8 +224,6 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
       <div class="chips" id="lfChips" role="group" aria-label="Filtro de leads">
         <button class="chip" data-l="all" aria-pressed="true">Todos</button>
         <button class="chip" data-l="mine" aria-pressed="false">Míos</button>
-        <button class="chip" data-l="obra" aria-pressed="false">Obra en curso</button>
-        <button class="chip" data-l="sinfecha" aria-pressed="false">Sin acción programada</button>
       </div>
       <button class="btn full" style="margin-bottom:12px" onclick="openExport()">Exportar leads y notas</button>
       <div id="leadList"></div>
@@ -878,7 +876,7 @@ function renderLeads(){
   const mine=L.filter(l=>l.by===me.id).length,obra=L.filter(l=>l.mom==="obra").length,sf=L.filter(l=>!l.fecha).length,hoy=todayStr();
   $("#leadSum").innerHTML=L.length?`<span>${L.length} lead${L.length>1?"s":""} del equipo</span><span>${mine} tuyos</span><span>${obra} con obra en curso</span><span>${sf} sin acción programada</span>`:"";
   const b=$("#bLeads");b.style.display=L.length?"inline-block":"none";b.textContent=L.length;
-  const rows=L.filter(l=>lf==="all"||(lf==="mine"&&l.by===me.id)||(lf==="obra"&&l.mom==="obra")||(lf==="sinfecha"&&!l.fecha));
+  const rows=L.filter(l=>lf==="all"||l.by===me.id);
   $("#leadList").innerHTML=rows.length?rows.map(l=>`<div class="card ${l.mom==="obra"?"hot":""}"><div class="t-row"><div class="grow"><h3>${esc(l.empresa)}</h3><div class="mut">${esc([l.nombre,l.cargo].filter(Boolean).join(" · "))}</div></div>${l.own?`<span class="owner">${esc(ownL[l.own])}</span>`:""}</div>
   <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${(l.int||[]).map(k=>`<span class="owner" style="color:var(--ink)">${esc(nm[k]||k)}</span>`).join("")}${(l.emp||[]).map(k=>`<span class="owner" style="color:var(--accent);border-color:var(--accent)">${esc(empL[k])}</span>`).join("")}${l.mom?`<span class="owner" style="color:var(--warn)">${esc(momL[l.mom])}</span>`:""}</div>
   ${l.nota?`<p style="font-size:14px;margin:8px 0 0">${esc(l.nota)}</p>`:""}
