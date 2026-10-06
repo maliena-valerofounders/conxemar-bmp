@@ -225,7 +225,7 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
         <button class="chip" data-l="all" aria-pressed="true">Todos</button>
         <button class="chip" data-l="mine" aria-pressed="false">Míos</button>
       </div>
-      <button class="btn full" style="margin-bottom:12px" onclick="openExport()">Exportar leads y notas</button>
+      <button class="btn full" id="btnExport" hidden style="margin-bottom:12px" onclick="openExport()">Exportar leads y notas</button>
       <div id="leadList"></div>
     </section>
 
@@ -320,7 +320,7 @@ code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:5px}
     <li style="padding:4px 0"><b>Visitado:</b> es personal. Cada persona marca lo suyo y no afecta a los demás.</li>
     <li style="padding:4px 0"><b>Faltan empresas:</b> en Expositores, "Añadir expositor a mano".</li>
     <li style="padding:4px 0"><b>Borrar:</b> solo puedes borrar lo que creaste tú, y siempre puedes deshacer durante unos segundos.</li>
-    <li style="padding:4px 0"><b>Exportar:</b> desde Leads, para llevarte una copia en CSV.</li>
+    <li id="helpExport" hidden style="padding:4px 0"><b>Exportar:</b> desde Leads, para llevarte una copia en CSV.</li>
   </ul>
   <button class="btn full" onclick="closeSheets()">Cerrar</button>
 </div>
@@ -526,7 +526,7 @@ function subscribe(){
   db.collection("expositores").onSnapshot(s=>{EXPO=docs(s);needNames(EXPO.map(x=>x.by));meta(s);sched()},onErr);
   db.collection("photoidx").onSnapshot(s=>{PIDX=docs(s);needNames(PIDX.map(p=>p.by));meta(s);sched()},onErr);
   db.doc("users/"+me.id+"/private/visits").onSnapshot(s=>{V=s.exists?((s.data()||{}).keys||{}):{};sched()},onErr);
-  if(me.canEdit){$("#adminLink").hidden=false;db.collection("allowed").onSnapshot(s=>{ALLOWED=docs(s);renderAllowed()},onErr)}
+  if(me.canEdit){$("#adminLink").hidden=false;$("#btnExport").hidden=false;$("#helpExport").hidden=false;db.collection("allowed").onSnapshot(s=>{ALLOWED=docs(s);renderAllowed()},onErr)}
 }
 function startApp(){
   if(started)return;started=true;
