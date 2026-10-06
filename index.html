@@ -807,7 +807,7 @@ Object.keys(FKEY).forEach(id=>$("#"+id).addEventListener("click",e=>{
   else if(key==="emp"){const a=form.emp||[];form.emp=a.includes(v)?a.filter(x=>x!==v):[...a,v];form.empTouched=true}
   else{form[key]=form[key]===v?"":v;if(key==="zona"&&!form.ownTouched){form.own=v==="gal"?"garmo":v?"group":""}}
   if(key==="own")form.ownTouched=true;
-  if(key==="acc"){$("#eFecha").textContent="";if(form.acc&&!$("#fFecha").value){const d=new Date();d.setDate(d.getDate()+2);$("#fFecha").value=d.toISOString().slice(0,10)}}
+  if(key==="acc"){$("#eFecha").textContent="";if(form.acc&&!$("#fFecha").value)$("#fFecha").value=defFecha()}
   paintForm();draftSave()}));
 function formVals(){return{empresa:$("#fEmpresa").value.trim(),nombre:$("#fNombre").value.trim(),cargo:$("#fCargo").value.trim(),tel:$("#fTel").value.trim(),mail:$("#fMail").value.trim(),fecha:$("#fFecha").value,accion:form.acc||"",nota:$("#fNota").value.trim()}}
 function draftSave(){
@@ -821,7 +821,8 @@ function leadHint(){
   $("#hEmpresa").textContent=c?`Ya hay ${c} lead${c>1?"s":""} de esta empresa en el equipo. Puedes crear otro si es otra persona.`:"";
 }
 $("#lf").addEventListener("input",()=>{leadHint();draftSave()});
-function fillForm(v){$("#fEmpresa").value=v.empresa||"";$("#fNombre").value=v.nombre||"";$("#fCargo").value=v.cargo||"";$("#fTel").value=v.tel||"";$("#fMail").value=v.mail||"";$("#fFecha").value=v.fecha||"";$("#fNota").value=v.nota||""}
+function defFecha(){const d=new Date();d.setDate(d.getDate()+2);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function fillForm(v){$("#fEmpresa").value=v.empresa||"";$("#fNombre").value=v.nombre||"";$("#fCargo").value=v.cargo||"";$("#fTel").value=v.tel||"";$("#fMail").value=v.mail||"";$("#fFecha").value=v.fecha||defFecha();$("#fNota").value=v.nota||""}
 function openLead(prefill){
   if(!guardWrite())return;
   editing=null;
